@@ -116,12 +116,12 @@ async function p1_make() {
     // 作れる物質がない場合は "なし" を返す
     if (!makeable_material || makeable_material.length === 0) {
         return [{
-            "name": "なし",
-            "formula": "なし",
-            "point": 0,
-            "components": {},
-            "advantageous": [],
-            "number": 0
+            "a": "なし",
+            "b": "なし",
+            "c": 0,
+            "d": {},
+            "e": [],
+            "f": 0
         }];
     }
 
