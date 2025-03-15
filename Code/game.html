@@ -13,6 +13,7 @@
     <div id="startScreen">
         <button id="startButton">スタート</button>
         <img src="../images/setting_icon.webp" id="setting_icon" alt="setting">
+        <p id="Attention">compoundsの取得に失敗しました</p>
     </div>
     <div id="p1_area" style="display: none;">
         <p id="p1_point">ポイント：0</p>
@@ -32,10 +33,22 @@
         <button class="buttons" id="ron_button">融合</button>
     </div>
     <div id="winSettingsModal">
-        <label>WIN_POINT: <input type="number" id="winPointInput" value="250" min="1"></label><br>
-        <label>WIN_TURN: <input type="number" id="winTurnInput" value="10" min="1"></label><br>
+        <label>win point: <input type="number" id="winPointInput" value="250" min="1"></label><br>
+        <label>win turn: <input type="number" id="winTurnInput" value="10" min="1"></label><br>
+        <div style="padding:0 5% 0 0">
+            <label>compoundURL：
+            <select id="compoundsSelection" onchange="showInputTag()">
+                <option value="compact">compact</option>
+                <option value="standard" selected>standard</option>
+                <option value="extended">extended</option>
+                <option value="url">URL</option>
+            </select><br>
+            <div></div>
+            <input type="url" id="compoundsURL" style="display:none; width:100%;padding:10px">
+            </label>
+        </div>
         <div style="display: flex; justify-content: space-between; padding: 5%;">
-            <button onclick="saveWinSettings()" style="padding: 10px 20px; font-size: 1.2em; width: 45%;">完了</button>
+            <button onclick="saveWinSettings()" style="padding: 10px 20px; font-size: 1.2em; width: 45%;">適用</button>
             <button onclick="closeWinSettings()" style="padding: 10px 20px; font-size: 1.2em; width: 45%;">取消</button>
         </div>
         <hr>
