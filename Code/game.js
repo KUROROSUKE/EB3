@@ -21,13 +21,22 @@ let materials = []
 let imageCache = {}
 
 //　load materials
-async function loadMaterials() {
-    const response = await fetch('../compound/standard.json')
-    const data = await response.json()
-    if (!data.material || !Array.isArray(data.material)) {
-        return []
+async function loadMaterials(url) {
+    try {
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (!data.material || !Array.isArray(data.material)) {
+            document.getElementById("Attention").style.display = "inline";
+            return [];
+        }
+        document.getElementById("Attention").style.display = "none";
+        return data.material;
+    } catch (error) {
+        console.error("Error fetching compounds:", error);  // Log the error to the console for debugging
+        document.getElementById("Attention").style.display = "inline";
+        return []; // Return an empty array in case of error
     }
-    return data.material
 }
 
 
@@ -94,11 +103,11 @@ async function view_p1_hand() {
 async function search(components) {
     return materials.find(material => {
         for (const element in components) {
-            if (!material.components[element] || material.components[element] !== components[element]) {
+            if (!material.d[element] || material.d[element] !== components[element]) {
                 return false;
             }
         }
-        for (const element in material.components) {
+        for (const element in material.d) {
             if (!components[element]) {
                 return false;
             }
@@ -116,17 +125,16 @@ async function p1_make() {
     // 作れる物質がない場合は "なし" を返す
     if (!makeable_material || makeable_material.length === 0) {
         return [{
-            "name": "なし",
-            "formula": "なし",
-            "point": 0,
-            "components": {},
-            "advantageous": [],
-            "number": 0
+            "a": "なし",
+            "b": "なし",
+            "c": 0,
+            "d": {},
+            "e": []
         }];
     }
 
     // ポイントが高い順にソート
-    makeable_material.sort((a, b) => b.point - a.point);
+    makeable_material.sort((a, b) => b.c - a.c);
 
     return makeable_material;
 }
@@ -162,20 +170,20 @@ async function done(who, isRon = false) {
     dora = await get_dora();
     console.log(`ドラ: ${dora}`);
     
-    let thisGame_p2_point = p2_make_material.point;
-    let thisGame_p1_point = p1_make_material[0].point;
+    let thisGame_p2_point = p2_make_material.c;
+    let thisGame_p1_point = p1_make_material[0].c;
 
     // 有利な生成物の場合のボーナス
-    if (Boolean(p2_make_material.advantageous.includes(p1_make_material[0].formula))) {
+    if (Boolean(p2_make_material.e.includes(p1_make_material[0].b))) {
         thisGame_p2_point *= (1.5 + Math.random() / 2);
-    } else if (Boolean(p1_make_material[0].advantageous.includes(p2_make_material.formula))) {
+    } else if (Boolean(p1_make_material[0].e.includes(p2_make_material.b))) {
         thisGame_p1_point *= (1.5 + Math.random() / 2);
     }
 
     // 役の中にドラが含まれる場合のボーナス
-    if (Boolean(Object.keys(p2_make_material.components).includes(dora))) {
+    if (Boolean(Object.keys(p2_make_material.d).includes(dora))) {
         thisGame_p2_point *= 1.5;
-    } else if (Boolean(Object.keys(p1_make_material[0].components).includes(dora))) {
+    } else if (Boolean(Object.keys(p1_make_material[0].d).includes(dora))) {
         thisGame_p1_point *= 1.5;
     }
 
@@ -197,10 +205,8 @@ async function done(who, isRon = false) {
     // 画面に反映
     document.getElementById("p2_point").innerHTML += `+${thisGame_p2_point}`;
     document.getElementById("p1_point").innerHTML += `+${thisGame_p1_point}`;
-    document.getElementById("p2_explain").innerHTML = `生成物質：${p2_make_material.name}, 組成式：${p2_make_material.formula}`;
-    document.getElementById("p1_explain").innerHTML = `生成物質：${p1_make_material[0].name}, 組成式：${p1_make_material[0].formula}`;
-
-    //updateGeneratedMaterials(p2_make_material.name); //ここは、もしかしたらAI作成に使えるかも
+    document.getElementById("p2_explain").innerHTML = `生成物質：${p2_make_material.a}, 組成式：${p2_make_material.b}`;
+    document.getElementById("p1_explain").innerHTML = `生成物質：${p1_make_material[0].a}, 組成式：${p1_make_material[0].b}`;
 
     // 勝者判定
     const winner = await win_check();
@@ -272,7 +278,7 @@ async function p1_exchange(targetElem) {
     img.classList.add("selected")
     // Switch the turn to "p1"
     turn = "p2"
-    checkRon(exchange_element);
+    if (time=="game"){checkRon(exchange_element);}
 }
 
 async function p1_action() {
@@ -282,13 +288,13 @@ async function p1_action() {
     p1_is_acting = true;  // 行動開始
     
     // フィルタリング
-    const highPointMaterials = materials.filter(material => material.point > 20);
+    const highPointMaterials = materials.filter(material => material.c > 50);
     
     // 最適な物質を選択
     const sortedMaterials = highPointMaterials.sort((a, b) => {
-        let aMatchCount = Object.keys(a.components).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, a.components[elem]), 0);
-        let bMatchCount = Object.keys(b.components).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, b.components[elem]), 0);
-        return bMatchCount - aMatchCount || b.point - a.point;
+        let aMatchCount = Object.keys(a.d).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, a.d[elem]), 0);
+        let bMatchCount = Object.keys(b.d).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, b.d[elem]), 0);
+        return bMatchCount - aMatchCount || b.c - a.c;
     });
 
     const targetMaterial = sortedMaterials[0];
@@ -297,19 +303,19 @@ async function p1_action() {
         p1_exchange(Math.floor(Math.random() * p1_hand.length));
     } else {
         let canMake = true;
-        for (const element in targetMaterial.components) {
-            if (!p1_hand.includes(element) || p1_hand.filter(e => e === element).length < targetMaterial.components[element]) {
+        for (const element in targetMaterial.d) {
+            if (!p1_hand.includes(element) || p1_hand.filter(e => e === element).length < targetMaterial.d[element]) {
                 canMake = false;
                 break;
             }
         }
 
-        if (canMake && targetMaterial.point > 20) {
+        if (canMake && targetMaterial.c > 50) {
             time = "make";
             await done("p1");
         } else {
             let unnecessaryCards = p1_hand.filter(e => {
-                return !(e in targetMaterial.components) || p1_hand.filter(card => card === e).length > targetMaterial.components[e];
+                return !(e in targetMaterial.d) || p1_hand.filter(card => card === e).length > targetMaterial.d[e];
             });
 
             if (unnecessaryCards.length > 0) {
@@ -365,8 +371,8 @@ function drawCard() {
 
 async function search_materials(components) {
     return materials.filter(material => {
-        for (const element in material.components) {
-            if (!components[element] || material.components[element] > components[element]) {
+        for (const element in material.d) {
+            if (!components[element] || material.d[element] > components[element]) {
                 return false
             }
         }
@@ -444,7 +450,7 @@ function preloadImages() {
 }
 
 async function init_json() {
-    materials = await loadMaterials()
+    materials = await loadMaterials("https://kurorosuke.github.io/compounds/standard.json")
 }
 
 
@@ -452,7 +458,7 @@ async function init_json() {
 async function checkRon(droppedCard) {
     // P2のロン判定
     const possibleMaterialsP2 = await search_materials(arrayToObj([...p2_hand, droppedCard]));
-    const validMaterialsP2 = possibleMaterialsP2.filter(material => material.components[droppedCard]);
+    const validMaterialsP2 = possibleMaterialsP2.filter(material => material.d[droppedCard]);
     if (validMaterialsP2.length > 0) {
         const ronButton = document.getElementById("ron_button");
         ronButton.style.display = "inline";
@@ -466,14 +472,14 @@ async function checkRon(droppedCard) {
             // 捨て牌一覧の最後の要素を取得し、赤枠を付ける
             const DroppedCards = document.getElementById("dropped_area_p1").children
             const lastDiscard = DroppedCards[DroppedCards.length - 1]
-            lastDiscard.style.border = "2px solid red";
+            lastDiscard.style.border = "2px solid f00";
             done("p2", true);
         });
     }
 
     // P1のロン判定（捨てられたカードを含める）
     const possibleMaterialsP1 = await search_materials(arrayToObj([...p1_hand, droppedCard]));
-    const validMaterialsP1 = possibleMaterialsP1.filter(material => ((material.point >= 70) && material.components[droppedCard]));
+    const validMaterialsP1 = possibleMaterialsP1.filter(material => ((material.c >= 70) && material.d[droppedCard]));
 
     if (validMaterialsP1.length > 0) {
         // **P1の手札に捨てたカードがもうない可能性があるため、戻す**
@@ -509,7 +515,7 @@ function updateGeneratedMaterials(materialName) {
 function openWinSettings() {
     document.getElementById("winSettingsModal").style.display = "block";
 }
-function saveWinSettings() {
+async function saveWinSettings() {
     let winPointInput = parseInt(document.getElementById("winPointInput").value, 10);
     let winTurnInput = parseInt(document.getElementById("winTurnInput").value, 10);
 
@@ -528,6 +534,15 @@ function saveWinSettings() {
 
     WIN_POINT = winPointInput;
     WIN_TURN = winTurnInput;
+
+    let compoundsValue = document.getElementById("compoundsSelection").value;
+    if (compoundsValue != "url") {
+        var compoundsURL = `https://kurorosuke.github.io/compounds/${compoundsValue}.json`;
+    } else {
+        var compoundsURL = document.getElementById("compoundsURL").value;
+    }
+    materials = await loadMaterials(compoundsURL);
+
     closeWinSettings();
 }
 function closeWinSettings() {
@@ -546,8 +561,8 @@ async function findMostPointMaterial() {
         console.log("p2_hand 内で作成可能な物質はありません。");
     } else {
         const highestMaterial = possibleMaterials.reduce((max, material) => 
-            material.point > max.point ? material : max, possibleMaterials[0]);
-        console.log(`p2_hand 内で最もポイントが高い物質: ${highestMaterial.name} (ポイント: ${highestMaterial.point})`);
+            material.c > max.c ? material : max, possibleMaterials[0]);
+        console.log(`p2_hand 内で最もポイントが高い物質: ${highestMaterial.a} (ポイント: ${highestMaterial.c})`);
     }
 }
 
@@ -598,3 +613,11 @@ window.onclick = function(event) {
         closeRules();
     }
 };
+
+function showInputTag() {
+    if (document.getElementById("compoundsSelection").value == "url"){
+        document.getElementById("compoundsURL").style.display = "inline";
+    } else {
+        document.getElementById("compoundsURL").style.display = "none";
+    }
+}
