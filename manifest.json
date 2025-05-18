@@ -1,7 +1,7 @@
 {
   "name": "Element Battle",
   "short_name": "Element Battle 3",
-  "start_url": "https://kurorosuke.github.io/PEB3AI/Code/game.min.html",
+  "start_url": "https://kurorosuke.github.io/EB3/Code/game.min.html",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#000000",
