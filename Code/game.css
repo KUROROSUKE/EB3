@@ -348,6 +348,12 @@
     height:57px
 }
 @media screen and (max-width: 730px) {
+    #startButton {
+        width: 60vw;
+    }
+    #OnlineStartButton {
+        width: 60vw;
+    }
     #PeerModal {
         left: 50%;
         width: 80%
