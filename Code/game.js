@@ -1432,24 +1432,31 @@ function closeModelModal() {
 
 
 // ========== game explain Modal ==========
+
 // show explain
 function showRules() {
     document.getElementById("rulesModal").style.display = "block";
 }
+
 // close explain
 function closeRules() {
     document.getElementById("rulesModal").style.display = "none";
 }
-document.getElementById("closeRulesButton").addEventListener("click", 
-    closeRules()
-);
-// モーダル外をクリックした場合に閉じる
-window.onclick = function(event) {
+
+// Add click event listener to the close button
+document.getElementById("closeRulesButton").addEventListener("click", closeRules);
+
+// モーダル外をクリック / タップした場合に閉じる（iPad対応）
+function handleOutsideClick(event) {
     const modal = document.getElementById("rulesModal");
     if (event.target === modal) {
         closeRules();
-    };
-};
+    }
+}
+
+window.addEventListener("click", handleOutsideClick);
+window.addEventListener("touchstart", handleOutsideClick);
+
 
 
 
