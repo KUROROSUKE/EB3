@@ -696,8 +696,8 @@ async function view_p2_hand() {
                     setTimeout(() => {checkRon(dropCard)},500);
                 } else {
                     turn = (turn == "p2") ? "p1" : "p2";
-                    changeTurn(turn)
-                    shareAction(action="exchange",otherData=img.alt)
+                    changeTurn(turn);
+                    shareAction(action="exchange",otherData=img.alt);
                 };
             };
         })
@@ -1432,20 +1432,18 @@ function closeModelModal() {
 
 
 // ========== game explain Modal ==========
-
 // show explain
 function showRules() {
+    closePeerModal();
+    closeWinSettings();
     document.getElementById("rulesModal").style.display = "block";
 }
-
 // close explain
 function closeRules() {
     document.getElementById("rulesModal").style.display = "none";
 }
-
 // Add click event listener to the close button
 document.getElementById("closeRulesButton").addEventListener("click", closeRules);
-
 // モーダル外をクリック / タップした場合に閉じる（iPad対応）
 function handleOutsideClick(event) {
     const modal = document.getElementById("rulesModal");
@@ -1453,10 +1451,40 @@ function handleOutsideClick(event) {
         closeRules();
     }
 }
-
 window.addEventListener("click", handleOutsideClick);
 window.addEventListener("touchstart", handleOutsideClick);
 
+
+
+
+
+// モーダルを開く
+document.getElementById("OnlineStartButton").addEventListener("click", function () {
+    const modal = document.getElementById("PeerModal");
+    closeRules();
+    closeWinSettings();
+    modal.style.display = "inline";
+
+    // 少し遅れてからイベントを追加（例：100ms後）
+    setTimeout(() => {
+        window.addEventListener("click", handleOutsideClick_PeerModal);
+        window.addEventListener("touchstart", handleOutsideClick_PeerModal);
+    }, 100);
+});
+// 閉じる関数
+function closePeerModal() {
+    document.getElementById("PeerModal").style.display = "none";
+    // リスナーを削除しておく
+    window.removeEventListener("click", handleOutsideClick_PeerModal);
+    window.removeEventListener("touchstart", handleOutsideClick_PeerModal);
+}
+// モーダル外をクリック / タップした場合に閉じる
+function handleOutsideClick_PeerModal(event) {
+    const modal = document.getElementById("PeerModal");
+    if (!modal.contains(event.target)) {
+        closePeerModal();
+    }
+}
 
 
 
@@ -1719,10 +1747,6 @@ document.getElementById("startButton").addEventListener("click", function() {
     GameType = "CPU";
     resetGame();
 });
-// start game with P2P
-document.getElementById("OnlineStartButton").addEventListener("click", function() {
-    document.getElementById("PeerModal").style.display = "inline";
-});
 // reset game state
 function resetGame() {
     p1_hand = [];
@@ -1946,7 +1970,6 @@ async function winnerAndChangeButton() {
         });
     }
 }
-
 async function generatePeerID() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const symbols = '-_';
@@ -2032,7 +2055,6 @@ function setupConnection() {
                 const img = new Image();
                 img.src = URL.createObjectURL(blob);
                 img.alt = data.otherData;
-                img.style.padding = "5px"
                 img.style.border = "1px solid #000"
                 document.getElementById("dropped_area_p1").appendChild(img);
                 checkRon(data.otherData);
