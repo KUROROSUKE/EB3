@@ -1656,7 +1656,7 @@ function random_hand() {
 }
 // load materials JSON file (initialize)
 async function init_json() {
-    compoundsURL = "https://kurorosuke.github.io/compounds/obf_standard_min.json"
+    compoundsURL = "https://kurorosuke.github.io/compounds/extended.json"
     materials = await loadMaterials(compoundsURL);
 }
 // load materials from url
