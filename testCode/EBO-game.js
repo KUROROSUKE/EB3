@@ -39,7 +39,7 @@ const auth = firebase.auth();
 
 function login() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInWithPopup(provider).catch(error => {
+    auth.signInAnonymously(provider).catch(error => {
         alert("ログイン失敗：" + error.message);
     });
 }
@@ -47,8 +47,16 @@ function logout() {
     auth.signOut();
 }
 function loginAndStart() {
-    login();
-    startPeer("EB3_test");
+    auth.signInAnonymously()
+    .then((userCredential) => {
+        const uid = userCredential.user.uid;
+        console.log("ログイン成功: ", uid);
+        startPeer(uid);
+    })
+    .catch((error) => {
+        console.error("ログイン失敗: ", error);
+        alert("ログインに失敗しました");
+    });
 }
 
 
@@ -83,12 +91,11 @@ async function init_json() {
     materials = await loadMaterials()
 }
 function startPeer(uid) {
-    roomName = uid; // uid をそのまま PeerID にする
-    peer = new Peer(roomName);
+    peer = new Peer(uid);
     peer.on('open', id => {
-        console.log("Peer起動:", id);
+        console.log("Peer起動: ", id);
         document.getElementById('my-id').innerText = `自分のID：${id}`;
-        // DBに待機登録
+        // DB登録
         database.ref('waiting_players/' + id).set({
             peerId: id,
             timestamp: Date.now()
@@ -547,15 +554,37 @@ let peer; // 合言葉をそのままPeer IDとして使う
 let conn;
 let name = null; // null = 未確定, "p1" = ホスト, "p2" = ゲスト
 
-function connectToPeer() {
-    if (name === null) {
-        name = "p1"; // 最初に接続する側を p1 に
-        //console.log("✅ あなたはホスト (p1) になりました！");
+
+async function findOpponentAndConnect() {
+    const snapshot = await database.ref('waiting_players').once('value');
+    const players = snapshot.val();
+    if (!players) {
+        alert("相手がまだ待機していません");
+        return;
     }
-    const remoteId = document.getElementById('remote-id').value;
-    document.getElementById("winSettingsModal").style.display = "none"
-    conn = peer.connect(remoteId);
+    const myId = peer.id;
+    const opponentIds = Object.keys(players).filter(id => id !== myId);
+    if (opponentIds.length === 0) {
+        alert("今はまだ対戦相手がいません");
+        return;
+    }
+    const opponentId = opponentIds[0];
+    // 予約ロック的に削除
+    await database.ref('waiting_players/' + opponentId).remove();
+    // PeerJSで接続開始
+    conn = peer.connect(opponentId);
     setupConnection();
+}
+function connectToPeer() {
+    if (name === null) name = "p1";
+    const isAuto = confirm("自動マッチングしますか？");
+    if (isAuto) {
+        findOpponentAndConnect();
+    } else {
+        const remoteId = document.getElementById('remote-id').value;
+        conn = peer.connect(remoteId);
+        setupConnection();
+    }
 }
 
 //データを受け取った時の処理
