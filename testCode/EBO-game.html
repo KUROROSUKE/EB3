@@ -18,18 +18,19 @@
     <div id="startScreen">
         <img src="../images/setting_icon.webp" id="setting_icon" alt="setting">
     </div>
+
     <!-- P1ゾーン -->
     <div id="p1_area" style="display: none;">
         <p id="p1_point">ポイント：0</p>
         <p id="p1_explain">　</p>
         <div id="p1_hand"></div>
     </div>
-
     <div id="dropped_area_p1" class="drop_area" style="display: none;"></div>
+
     <hr style="border: 2px solid black; width:90%">
-    <div id="dropped_area_p2" class="drop_area" style="display: none;"></div>
-    
+
     <!-- P2ゾーン -->
+    <div id="dropped_area_p2" class="drop_area" style="display: none;"></div>
     <div id="p2_area" style="display: none;">
         <div id="p2_hand"></div>
         <p id="p2_point">ポイント：0</p>
@@ -48,8 +49,9 @@
         <hr>
         <a href="https://forms.gle/6sKpeCiFVbJMErLj9" id="inquiry">「元素ゲーム」問い合わせフォーム</a>
     </div>
-    <button id="gameRuleButton" onclick="showRules()">ゲームルール</button>
+
     <!-- ルール説明モーダル -->
+    <button id="gameRuleButton" onclick="showRules()">ゲームルール</button>
     <div id="rulesModal" class="modal">
         <div class="modal-content">
             <span id="closeRulesButton" class="close">&times;</span>
@@ -64,6 +66,10 @@
             </div>
         </div>
     </div>
+
+    <!--- ログインモーダル -->
+
+    <!--- script -->
     <script src="EBO-game.js"></script>
 </body>
 </html>
