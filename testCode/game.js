@@ -118,7 +118,24 @@ function loginWithMail() {
 function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
 }
-
+function startPeer(uid) {
+    peer = new Peer(uid);
+    peer.on('open', id => {
+        console.log("Peer起動: ", id);
+        document.getElementById('my-id').innerText = `自分のID：${id}`;
+        // DB登録
+        database.ref('waiting_players/' + id).set({
+            peerId: id,
+            timestamp: Date.now()
+        });
+        document.getElementById("winSettingsModal").style.display = "none";
+    });
+    peer.on('connection', connection => {
+        conn = connection;
+        if (name === null) name = "p2";
+        setupConnection();
+    });
+}
 
 
 
