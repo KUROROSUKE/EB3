@@ -125,7 +125,7 @@ function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
 }
 // close explain
-function closeRules() {
+function closeLoginModal() {
     console.log("ok")
     document.getElementById("loginModal").style.display = "none";
 }
@@ -133,7 +133,7 @@ function closeRules() {
 function handleOutsideClick2(event) {
     const modal = document.getElementById("loginModal");
     if (event.target === modal) {
-        closeRules();
+        closeLoginModal();
     }
 }
 window.addEventListener("click", handleOutsideClick2);
