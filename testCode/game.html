@@ -172,7 +172,7 @@
         <div style="text-align:center;"><h3>友達と対戦</h3></div>
         <p id="my-id">もう一度リロードしてみてください</p>
         <input id="remote-id" placeholder="ここに相手のPeerIDを入力してください。">
-        <button onclick="connectToPeer()" id="connectionButton">対戦</button>
+        <button onclick="connectToPeer()">対戦</button>
         <hr>
         <div style="text-align:center; margin:10px 0 0 0"><h3>ランクマッチ</h3></div>
         <div style="text-align:right; display:inline; width:100%;"><button onclick="RankMatch()" id="RankMatchButton" style="display:inline;">対戦</button></div>
@@ -201,6 +201,8 @@
     <div id="UserDataModal" style="display:none;">
         <p>ユーザーデータ</p>
         <p id="my-rate"></p>
+        <input id="name-change" placeholder="変更する名前を入力してください">
+        <button onclick="changeName()">変更</button>
         <hr>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">「元素ゲーム」問い合わせフォーム</a>
     </div>
