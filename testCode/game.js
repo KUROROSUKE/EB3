@@ -178,10 +178,9 @@ async function changeName() {
 
     const user = firebase.auth().currentUser;
     const userRef = database.ref("players/" + user.uid);
-    userRef.update({ name: newName })
+    userRef.update({ Name: newName })
     .then(() => {
         console.log("✅ 名前を更新しました");
-        loadUsers();
     })
     .catch(error => {
         console.log("❌ エラー：" + error.message);
@@ -2318,9 +2317,9 @@ function startPeer(uid) {
         console.log("Peer起動: ", id);
         document.getElementById('my-id').innerText = `自分のID：${id}`;
         // DB登録
-        database.ref(`players/${id}`).update({
-            PeerID: id
-        });
+        const user = firebase.auth().currentUser;
+        const userRef = database.ref("players/" + user.uid);
+        userRef.update({ PeerID: id })
         document.getElementById("winSettingsModal").style.display = "none";
     });
     peer.on('connection', connection => {
