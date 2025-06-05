@@ -124,14 +124,9 @@ function loginWithMail() {
 function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
 }
-// show explain
-function showRules() {
-    closePeerModal();
-    closeWinSettings();
-    document.getElementById("loginModal").style.display = "block";
-}
 // close explain
 function closeRules() {
+    console.log("ok")
     document.getElementById("loginModal").style.display = "none";
 }
 // モーダル外をクリック / タップした場合に閉じる（iPad対応）
