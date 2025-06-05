@@ -159,8 +159,7 @@ function loginWithMail() {
 function changeName() {
     const newName = document.getElementById("name-change").value.trim();
 
-    const db = getDatabase();
-    update(ref(db, "players/" + auth.currentUser.uid), {
+    update(ref(database, "players/" + auth.currentUser.uid), {
         Name: newName,
     })
     .then(() => {
