@@ -126,19 +126,18 @@ function loginButton() {
 }
 // close explain
 function closeLoginModal() {
-    console.log("ok")
+    console.log("ok");
     document.getElementById("loginModal").style.display = "none";
 }
 // モーダル外をクリック / タップした場合に閉じる（iPad対応）
 function handleOutsideClick2(event) {
     const modal = document.getElementById("loginModal");
-    if (event.target === modal) {
+    if (!modal.contains(event.target)) { // モーダル外のクリックを判定
         closeLoginModal();
     }
 }
 window.addEventListener("click", handleOutsideClick2);
-window.addEventListener("touchstart", handleOutsideClick2);
-
+window.addEventListener("touchend", handleOutsideClick2);
 
 
 
