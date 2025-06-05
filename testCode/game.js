@@ -166,13 +166,13 @@ async function changeName() {
     const nameInput = document.getElementById("name-change");
     const newName = nameInput.value.trim();
     if (!newName) {
-        nameMessage.textContent = "❌ 空の名前は使えません";
+        console.log("❌ 空の名前は使えません");
         return;
     }
 
     const existingNames = await getAllNames();
     if (existingNames.includes(newName)) {
-        nameMessage.textContent = "❌ この名前は既に使われています";
+        console.log("❌ この名前は既に使われています");
         return;
     }
 
@@ -180,11 +180,11 @@ async function changeName() {
     const userRef = database.ref("players/" + user.uid);
     userRef.update({ name: newName })
     .then(() => {
-        nameMessage.textContent = "✅ 名前を更新しました";
+        console.log("✅ 名前を更新しました");
         loadUsers();
     })
     .catch(error => {
-        nameMessage.textContent = "❌ エラー：" + error.message;
+        console.log("❌ エラー：" + error.message);
     });
 }
 
