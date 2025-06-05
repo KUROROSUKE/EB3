@@ -357,6 +357,18 @@
     border: 1px solid black;
     z-index: 999;
 }
+#UserDataModal {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: 35%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    border: 1px solid black;
+    z-index: 999;
+}
 #remote-id {
     display: inline-block;
     width:72%;
@@ -390,6 +402,10 @@
         width: 80%
     }
     #LoginModal {
+        left: 50%;
+        width: 80%
+    }
+    #UserDataModal {
         left: 50%;
         width: 80%
     }
