@@ -62,7 +62,7 @@ auth.onAuthStateChanged(async user => {
 // firebase authentication functions
 function login() {
     const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInAnonymously(provider).catch(error => {
+    auth.signInAnonymously().catch(error => {
         alert("ログイン失敗：" + error.message);
     });
 }
@@ -86,6 +86,7 @@ document.getElementById("user_icon").addEventListener("click", function () {
 // 閉じる関数
 function closeLoginModal() {
     document.getElementById("LoginModal").style.display = "none";
+    document.getElementById("UserDataModal").style.display = "none";
     // リスナーを削除しておく
     window.removeEventListener("click", handleOutsideClick_LoginModal);
     window.removeEventListener("touchstart", handleOutsideClick_LoginModal);
@@ -156,6 +157,13 @@ function loginWithMail() {
     });
 }
 
+function changeName() {
+    const newName = document.getElementById("name-change").value;
+    // playersのnameを更新する
+    update(ref(database, "players/" + auth.currentUser.uid), {
+                Name: newName,
+    });
+}
 
 
 
