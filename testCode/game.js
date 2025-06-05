@@ -135,14 +135,14 @@ function closeRules() {
     document.getElementById("loginModal").style.display = "none";
 }
 // モーダル外をクリック / タップした場合に閉じる（iPad対応）
-function handleOutsideClick(event) {
+function handleOutsideClick2(event) {
     const modal = document.getElementById("loginModal");
     if (event.target === modal) {
         closeRules();
     }
 }
-window.addEventListener("click", handleOutsideClick);
-window.addEventListener("touchstart", handleOutsideClick);
+window.addEventListener("click", handleOutsideClick2);
+window.addEventListener("touchstart", handleOutsideClick2);
 
 
 
