@@ -35,7 +35,25 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
+function getRandomName() {
+    const animals = ["cat", "dog", "bird", "bear", "monkey", "fox", "deer", "penguin"];
+    const rand = animals[Math.floor(Math.random() * animals.length)] + Math.floor(Math.random() * 1000);
+    return rand;
+}
+auth.onAuthStateChanged(async user => {
+    if (!user) return;  // ログアウト時
 
+    // デフォルト値を持った自分用ノードを作成（初回だけ）
+    const playerRef = database.ref(`players/${user.uid}`);
+    const exists = (await playerRef.once('value')).exists();
+    if (!exists) {
+        await playerRef.set({
+            IsSerched: false,          // まだ対戦相手を探していない
+            PeerID: '',                // Peer が立ち上がったら後で上書き
+            Name: getRandomName()     // Google なら表示名、メールなら null
+        });
+    }
+});
 
 
 
@@ -51,17 +69,33 @@ function login() {
 function logout() {
     auth.signOut();
 }
-function loginAndStart() {
-    auth.signInAnonymously()
-    .then((userCredential) => {
-        const uid = userCredential.user.uid;
-        console.log("ログイン成功: ", uid);
-        startPeer(uid);
-    })
-    .catch((error) => {
-        console.error("ログイン失敗: ", error);
-        alert("ログインに失敗しました");
-    });
+document.getElementById("user_icon").addEventListener("click", function () {
+    closeRules();
+    closeWinSettings();
+    closePeerModal();
+    const user = firebase.auth().currentUser;
+    let modal;
+    if (user) {modal = document.getElementById("UserDataModal");} else {modal = document.getElementById("LoginModal");}
+    modal.style.display = "inline";
+    // 少し遅れてからイベントを追加（例：100ms後）
+    setTimeout(() => {
+        window.addEventListener("click", handleOutsideClick_LoginModal);
+        window.addEventListener("touchstart", handleOutsideClick_LoginModal);
+    }, 100);
+});
+// 閉じる関数
+function closeLoginModal() {
+    document.getElementById("LoginModal").style.display = "none";
+    // リスナーを削除しておく
+    window.removeEventListener("click", handleOutsideClick_LoginModal);
+    window.removeEventListener("touchstart", handleOutsideClick_LoginModal);
+}
+// モーダル外をクリック / タップした場合に閉じる
+function handleOutsideClick_LoginModal(event) {
+    const modal = document.getElementById("LoginModal");
+    if (!modal.contains(event.target)) {
+        closeLoginModal();
+    }
 }
 // Google login
 function loginWithGoogle() {
@@ -121,58 +155,7 @@ function loginWithMail() {
         alert("ログインに失敗しました: " + error.message);
     });
 }
-function loginButton() {
-  document.getElementById("loginModal").style.display = "inline";
-}function closeLoginModal() {
-    console.log("ok");
-    document.getElementById("loginModal").style.display = "none";
-}
 
-// モーダル外をクリック / タップした場合に閉じる（誤作動防止）
-function handleOutsideClick2(event) {
-    const modal = document.getElementById("loginModal");
-    
-    // モーダル自体が表示されていない場合は何もしない
-    if (!modal || modal.style.display === "none") {
-        return;
-    }
-    
-    // モーダル外をクリック / タップした場合に閉じる
-    if (!modal.contains(event.target)) {
-        closeLoginModal();
-    }
-}
-
-// 少し遅延を入れることで、モーダルが開いた直後の誤作動を防ぐ
-setTimeout(() => {
-    window.addEventListener("click", handleOutsideClick2);
-    window.addEventListener("touchend", handleOutsideClick2);
-}, 100);
-
-
-
-
-
-
-
-function startPeer(uid) {
-    peer = new Peer(uid);
-    peer.on('open', id => {
-        console.log("Peer起動: ", id);
-        document.getElementById('my-id').innerText = `自分のID：${id}`;
-        // DB登録
-        database.ref('waiting_players/' + id).set({
-            peerId: id,
-            timestamp: Date.now()
-        });
-        document.getElementById("winSettingsModal").style.display = "none";
-    });
-    peer.on('connection', connection => {
-        conn = connection;
-        if (name === null) name = "p2";
-        setupConnection();
-    });
-}
 
 
 
@@ -2147,7 +2130,7 @@ function connectToPeer() {
         //console.log("✅ あなたはホスト (p1) になりました！");
     }
     const remoteId = document.getElementById('remote-id').value;
-    document.getElementById("PeerModal").style.display = "none"
+    document.getElementById("PeerModal").style.display = "none";
     conn = peer.connect(remoteId);
     setupConnection();
 }
@@ -2295,4 +2278,62 @@ async function nextIsOK() {
     if (conn && conn.open) {
         conn.send({type: "nextIsOK", content: true})
     }
+}
+
+// Peer with account
+function startPeer(uid) {
+    peer = new Peer(uid);
+    peer.on('open', id => {
+        console.log("Peer起動: ", id);
+        document.getElementById('my-id').innerText = `自分のID：${id}`;
+        // DB登録
+        database.ref(`players/${id}`).update({
+            PeerID: id
+        });
+        document.getElementById("winSettingsModal").style.display = "none";
+    });
+    peer.on('connection', connection => {
+        conn = connection;
+        if (name === null) name = "p2";
+        setupConnection();
+    });
+}
+// get opponent's PeerID
+async function getOpponentPeerID(myUserName) {
+  try {
+    // 「対戦相手を探している人」を 1 人だけ取得
+    const snap = await database
+      .ref('players')
+      .orderByChild('IsSerched')
+      .equalTo(true)
+      .limitToFirst(1)
+      .once('value');
+
+    if (!snap.exists()) return null;         // まだ誰も待っていない
+
+    // 取得したノード（1件）のキーを取り出す
+    let opponentKey = Object.keys(snap.val())[0];
+
+    // たまたま自分が取れてしまった場合は無視
+    if (opponentKey === myUserName) return null;
+
+    const opponentRef = database.ref(`players/${opponentKey}`);
+    let opponentPeerID = null;
+
+    // ★ 同時に他プレイヤーが確保しないよう transaction でロック
+    await opponentRef.transaction(current => {
+      if (current && current.IsSerched) {
+        opponentPeerID = current.PeerID;     // ここで PeerID を拾う
+        current.IsSerched = false;           // 相手はもう検索状態ではない
+        current.Opponent = myUserName;       // （任意）誰に取られたか記録
+        return current;                      // → 書き戻してコミット
+      }
+      return;                                // IsSerched が既に false なら中止
+    });
+
+    return opponentPeerID;                   // 見つかっていれば文字列、ダメなら null
+  } catch (err) {
+    console.error('getOpponentPeerID error:', err);
+    return null;
+  }
 }
