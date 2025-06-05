@@ -68,6 +68,14 @@
     bottom: 5vh;
     z-index: 101;
 }
+
+#user_icon {
+    position: fixed;
+    height: 6vh;
+    right: 5vw;
+    top: 5vh;
+    z-index: 101;
+}
 #winSettingsModal {
     display: none;
     position: fixed;
@@ -337,7 +345,7 @@
     z-index: 102;
 }
 
-#loginModal {
+#LoginModal {
     display: none;
     position: fixed;
     top: 50%;
@@ -359,6 +367,17 @@
     width:22%;
     height:57px
 }
+
+#my-rate {
+    display: inline-block;
+    width:72%;
+    height:50px
+}
+#RankMatchButton {
+    display: inline;
+    width:100%;
+    height:57px
+}
 @media screen and (max-width: 730px) {
     #startButton {
         width: 60vw;
@@ -370,7 +389,7 @@
         left: 50%;
         width: 80%
     }
-    #loginModal {
+    #LoginModal {
         left: 50%;
         width: 80%
     }
