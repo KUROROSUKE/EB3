@@ -115,7 +115,7 @@ function loginWithMail() {
         alert("ログインに失敗しました: " + error.message);
     });
 }
-function LogInButton() {
+function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
 }
 
