@@ -158,7 +158,7 @@ function loginWithMail() {
 }
 
 async function getAllNames() {
-  const snapshot = await db.ref("players").once("value");
+  const snapshot = await database.ref("players").once("value");
   const users = snapshot.val();
   return users ? Object.values(users).map(u => u.name) : [];
 }
@@ -176,7 +176,7 @@ async function changeName() {
         return;
     }
 
-    const userRef = db.ref("players/" + currentUser.uid);
+    const userRef = database.ref("players/" + currentUser.uid);
     userRef.update({ name: newName })
     .then(() => {
         nameMessage.textContent = "✅ 名前を更新しました";
