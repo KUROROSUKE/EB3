@@ -93,10 +93,8 @@ function closeLoginModal() {
 }
 // モーダル外をクリック / タップした場合に閉じる
 function handleOutsideClick_LoginModal(event) {
-    const modal = document.getElementById("LoginModal");
-    if (!modal.contains(event.target)) {
-        closeLoginModal();
-    }
+    if (user) {const modal = document.getElementById("UserDataModal");} else {const modal = document.getElementById("LoginModal");}
+    if (!modal.contains(event.target)) closeLoginModal();
 }
 // Google login
 function loginWithGoogle() {
