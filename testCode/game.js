@@ -94,7 +94,8 @@ function closeLoginModal() {
 // モーダル外をクリック / タップした場合に閉じる
 function handleOutsideClick_LoginModal(event) {
     const user = firebase.auth().currentUser;
-    if (user) {const modal = document.getElementById("UserDataModal");} else {const modal = document.getElementById("LoginModal");}
+    let modal;
+    if (user) {modal = document.getElementById("UserDataModal");} else {modal = document.getElementById("LoginModal");}
     if (!modal.contains(event.target)) closeLoginModal();
 }
 // Google login
@@ -155,12 +156,19 @@ function loginWithMail() {
         alert("ログインに失敗しました: " + error.message);
     });
 }
-
 function changeName() {
-    const newName = document.getElementById("name-change").value;
-    // playersのnameを更新する
-    update(ref(database, "players/" + auth.currentUser.uid), {
-                Name: newName,
+    const newName = document.getElementById("name-change").value.trim();
+
+    const db = getDatabase();
+    update(ref(db, "players/" + auth.currentUser.uid), {
+        Name: newName,
+    })
+    .then(() => {
+        alert("名前を更新しました");
+    })
+    .catch((error) => {
+        console.error("名前の更新に失敗しました:", error);
+        alert("名前の更新に失敗しました: " + error.message);
     });
 }
 
