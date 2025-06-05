@@ -156,19 +156,34 @@ function loginWithMail() {
         alert("ログインに失敗しました: " + error.message);
     });
 }
-function changeName() {
-    const newName = document.getElementById("name-change").value.trim();
 
-    update(ref(database, "players/" + auth.currentUser.uid), {
-        Name: newName,
-    })
-    .then(() => {
-        alert("名前を更新しました");
-    })
-    .catch((error) => {
-        console.error("名前の更新に失敗しました:", error);
-        alert("名前の更新に失敗しました: " + error.message);
-    });
+async function getAllNames() {
+  const snapshot = await db.ref("players").once("value");
+  const users = snapshot.val();
+  return users ? Object.values(users).map(u => u.name) : [];
+}
+async function changeName() {
+  const newName = nameInput.value.trim();
+  if (!newName) {
+    nameMessage.textContent = "❌ 空の名前は使えません";
+    return;
+  }
+
+  const existingNames = await getAllNames();
+  if (existingNames.includes(newName)) {
+    nameMessage.textContent = "❌ この名前は既に使われています";
+    return;
+  }
+
+  const userRef = db.ref("players/" + currentUser.uid);
+  userRef.update({ name: newName })
+  .then(() => {
+    nameMessage.textContent = "✅ 名前を更新しました";
+    loadUsers();
+  })
+  .catch(error => {
+    nameMessage.textContent = "❌ エラー：" + error.message;
+  });
 }
 
 
