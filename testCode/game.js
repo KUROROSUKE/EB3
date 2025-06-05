@@ -163,27 +163,28 @@ async function getAllNames() {
   return users ? Object.values(users).map(u => u.name) : [];
 }
 async function changeName() {
-  const newName = nameInput.value.trim();
-  if (!newName) {
-    nameMessage.textContent = "❌ 空の名前は使えません";
-    return;
-  }
+    const nameInput = document.getElementById("name-change");
+    const newName = nameInput.value.trim();
+    if (!newName) {
+        nameMessage.textContent = "❌ 空の名前は使えません";
+        return;
+    }
 
-  const existingNames = await getAllNames();
-  if (existingNames.includes(newName)) {
-    nameMessage.textContent = "❌ この名前は既に使われています";
-    return;
-  }
+    const existingNames = await getAllNames();
+    if (existingNames.includes(newName)) {
+        nameMessage.textContent = "❌ この名前は既に使われています";
+        return;
+    }
 
-  const userRef = db.ref("players/" + currentUser.uid);
-  userRef.update({ name: newName })
-  .then(() => {
-    nameMessage.textContent = "✅ 名前を更新しました";
-    loadUsers();
-  })
-  .catch(error => {
-    nameMessage.textContent = "❌ エラー：" + error.message;
-  });
+    const userRef = db.ref("players/" + currentUser.uid);
+    userRef.update({ name: newName })
+    .then(() => {
+        nameMessage.textContent = "✅ 名前を更新しました";
+        loadUsers();
+    })
+    .catch(error => {
+        nameMessage.textContent = "❌ エラー：" + error.message;
+    });
 }
 
 
