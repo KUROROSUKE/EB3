@@ -123,21 +123,33 @@ function loginWithMail() {
 }
 function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
-}
-// close explain
-function closeLoginModal() {
+}function closeLoginModal() {
     console.log("ok");
     document.getElementById("loginModal").style.display = "none";
 }
-// モーダル外をクリック / タップした場合に閉じる（iPad対応）
+
+// モーダル外をクリック / タップした場合に閉じる（誤作動防止）
 function handleOutsideClick2(event) {
     const modal = document.getElementById("loginModal");
-    if (!modal.contains(event.target)) { // モーダル外のクリックを判定
+    
+    // モーダル自体が表示されていない場合は何もしない
+    if (!modal || modal.style.display === "none") {
+        return;
+    }
+    
+    // モーダル外をクリック / タップした場合に閉じる
+    if (!modal.contains(event.target)) {
         closeLoginModal();
     }
 }
-window.addEventListener("click", handleOutsideClick2);
-window.addEventListener("touchend", handleOutsideClick2);
+
+// 少し遅延を入れることで、モーダルが開いた直後の誤作動を防ぐ
+setTimeout(() => {
+    window.addEventListener("click", handleOutsideClick2);
+    window.addEventListener("touchend", handleOutsideClick2);
+}, 100);
+
+
 
 
 
