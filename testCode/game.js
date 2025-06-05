@@ -176,7 +176,8 @@ async function changeName() {
         return;
     }
 
-    const userRef = database.ref("players/" + currentUser.uid);
+    const user = firebase.auth().currentUser;
+    const userRef = database.ref("players/" + user.uid);
     userRef.update({ name: newName })
     .then(() => {
         nameMessage.textContent = "✅ 名前を更新しました";
