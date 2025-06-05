@@ -35,6 +35,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
 const auth = firebase.auth();
+
+
+
+
+
+// ======== login Modal =======
 // firebase authentication functions
 function login() {
     const provider = new firebase.auth.GoogleAuthProvider();
@@ -118,6 +124,31 @@ function loginWithMail() {
 function loginButton() {
   document.getElementById("loginModal").style.display = "inline";
 }
+// show explain
+function showRules() {
+    closePeerModal();
+    closeWinSettings();
+    document.getElementById("loginModal").style.display = "block";
+}
+// close explain
+function closeRules() {
+    document.getElementById("loginModal").style.display = "none";
+}
+// モーダル外をクリック / タップした場合に閉じる（iPad対応）
+function handleOutsideClick(event) {
+    const modal = document.getElementById("loginModal");
+    if (event.target === modal) {
+        closeRules();
+    }
+}
+window.addEventListener("click", handleOutsideClick);
+window.addEventListener("touchstart", handleOutsideClick);
+
+
+
+
+
+
 function startPeer(uid) {
     peer = new Peer(uid);
     peer.on('open', id => {
