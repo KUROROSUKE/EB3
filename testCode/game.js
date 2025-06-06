@@ -46,6 +46,7 @@ auth.onAuthStateChanged(async user => {
     // デフォルト値を持った自分用ノードを作成（初回だけ）
     const playerRef = database.ref(`players/${user.uid}`);
     const exists = (await playerRef.once('value')).exists();
+    document.getElementById("rankmatchModal").style.display = "inline-block";
     if (!exists) {
         await playerRef.set({
             IsSerched: false,          // まだ対戦相手を探していない
@@ -105,7 +106,7 @@ function loginWithGoogle() {
     .then((result) => {
         const user = result.user;
         console.log("Google login success:", user);
-        startPeer(user.uid); // or any function you want to call after login
+        startPeer(); // or any function you want to call after login
     })
     .catch((error) => {
         console.error("Google login failed: ", error);
@@ -127,7 +128,7 @@ function SignUpWithMail() {
         const user = userCredential.user;
         console.log("サインアップ成功:", user);
         alert("サインアップ成功しました");
-        startPeer(user.uid); // optional if you want to start after signup
+        startPeer(); // optional if you want to start after signup
     })
     .catch((error) => {
         console.error("サインアップ失敗:", error);
@@ -149,7 +150,7 @@ function loginWithMail() {
         const user = userCredential.user;
         console.log("ログイン成功:", user);
         alert("ログイン成功しました");
-        startPeer(user.uid); // optional if you want to start after login
+        startPeer(); // optional if you want to start after login
     })
     .catch((error) => {
         console.error("ログイン失敗:", error);
@@ -2311,22 +2312,12 @@ async function nextIsOK() {
 }
 
 // Peer with account
-function startPeer(uid) {
-    peer = new Peer(uid);
-    peer.on('open', id => {
-        console.log("Peer起動: ", id);
-        document.getElementById('my-id').innerText = `自分のID：${id}`;
-        // DB登録
-        const user = firebase.auth().currentUser;
-        const userRef = database.ref("players/" + user.uid);
-        userRef.update({ PeerID: id })
-        document.getElementById("winSettingsModal").style.display = "none";
-    });
-    peer.on('connection', connection => {
-        conn = connection;
-        if (name === null) name = "p2";
-        setupConnection();
-    });
+function startPeer() {
+    // DB登録
+    const user = firebase.auth().currentUser;
+    const userRef = database.ref("players/" + user.uid);
+    userRef.update({ PeerID: id })
+    document.getElementById("winSettingsModal").style.display = "none";
 }
 // get opponent's PeerID
 async function getOpponentPeerID(myUserName) {
