@@ -47,8 +47,6 @@ auth.onAuthStateChanged(async user => {
     const playerRef = database.ref(`players/${user.uid}`);
     const exists = (await playerRef.once('value')).exists();
     document.getElementById("rankmatchModal").style.display = "block";
-    document.getElementById("UserDataMessage").innerHTML = "";
-    document.getElementById("name-change").value = "";
     if (!exists) {
         await playerRef.set({
             IsSerched: false,          // まだ対戦相手を探していない
@@ -70,6 +68,8 @@ document.getElementById("user_icon").addEventListener("click", function () {
     closeRules();
     closeWinSettings();
     closePeerModal();
+    document.getElementById("UserDataMessage").innerHTML = "";
+    document.getElementById("name-change").value = "";
     const user = firebase.auth().currentUser;
     let modal;
     if (user) {modal = document.getElementById("UserDataModal");} else {modal = document.getElementById("LoginModal");}
