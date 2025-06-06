@@ -62,6 +62,7 @@ auth.onAuthStateChanged(async (user) => {
 
     // Final safeguard: if somehow name is still undefined, randomize it
     await playerRef.update({ Name: name });
+    console.log(name);
 
     // Show it in the UI
     const tag = document.getElementById('UserNameTag');
