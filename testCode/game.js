@@ -200,7 +200,7 @@ async function changeName() {
     .then(() => {
         console.log("✅ 名前を更新しました");
         document.getElementById("UserDataMessage").innerHTML = "名前を更新しました";
-        document.getElementById('UserNameTag').innerHTML = `現在の名前： ${name}`;
+        document.getElementById('UserNameTag').innerHTML = `現在の名前： ${newName}`;
     })
     .catch(error => {
         console.log("❌ エラー：" + error.message);
