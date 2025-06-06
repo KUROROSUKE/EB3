@@ -60,7 +60,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('https://kurorosuke.github.io/PEB3AI/sw.js')
+            navigator.serviceWorker.register('./EB3/sw.js')
                 .then(reg => console.log('Service Worker registered:', reg.scope))
                 .catch(err => console.error('Service Worker registration failed:', err));
         });
@@ -201,6 +201,7 @@
     <!-- ユーザー（認証済）モーダル -->
     <div id="UserDataModal" style="display:none;">
         <div style="text-align: center;"><h3>ユーザーデータ</h3></div>
+        <p id="UserNameTag"></p>
         <p id="my-rate"></p>
         <input id="name-change" placeholder="変更する名前を入力してください">
         <button onclick="changeName()">変更</button>
