@@ -166,12 +166,14 @@ async function changeName() {
     const newName = nameInput.value.trim();
     if (!newName) {
         console.log("❌ 空の名前は使えません");
+        document.getElementById("UserDataMessage").innerHTML = "空の名前は使えません";
         return;
     }
 
     const existingNames = await getAllNames();
     if (existingNames.includes(newName)) {
         console.log("❌ この名前は既に使われています");
+        document.getElementById("UserDataMessage").innerHTML = "この名前は既に使われています";
         return;
     }
 
@@ -180,9 +182,11 @@ async function changeName() {
     userRef.update({ Name: newName })
     .then(() => {
         console.log("✅ 名前を更新しました");
+        document.getElementById("UserDataMessage").innerHTML = "名前を更新しました";
     })
     .catch(error => {
         console.log("❌ エラー：" + error.message);
+        document.getElementById("UserDataMessage").innerHTML = "エラー";
     });
 }
 
