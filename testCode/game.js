@@ -41,39 +41,34 @@ function getRandomName() {
     return rand;
 }
 auth.onAuthStateChanged(async (user) => {
-  if (!user) return; // user logged-out — nothing to do
+    if (!user) return; // user logged-out — nothing to do
 
-  const playerRef  = database.ref(`players/${user.uid}`);
-  const snapshot   = await playerRef.once('value');
-  let name;
+    const playerRef  = database.ref(`players/${user.uid}`);
+    const snapshot   = await playerRef.once('value');
+    let name;
 
-  if (snapshot.exists()) {
-    // ── existing player ───────────────────────────────
-    name = snapshot.child('Name').val(); // could be null
-  } else {
-    // ── first-time player ─────────────────────────────
-    name = user.displayName // sign-in
-            || (user.email ? user.email.split('@')[0] : null)
-            || getRandomName(); // fallback
-    await playerRef.set({
-        IsSearched : false,
-        PeerID     : '',
-        Name       : name
-    }); // set new data
-  }
+    if (snapshot.exists()) {
+        // ── existing player ───────────────────────────────
+        name = snapshot.child('Name').val(); // could be null
+    } else {
+        // ── first-time player ─────────────────────────────
+        name = getRandomName();  // fallback
+        await playerRef.set({
+            IsSearched : false,
+            PeerID     : '',
+            Name       : name
+        }); // set new data
+    }
 
-  // Final safeguard: if somehow name is still undefined, randomize it
-  if (!name) {
-    name = getRandomName();
+    // Final safeguard: if somehow name is still undefined, randomize it
     await playerRef.update({ Name: name });
-  }
 
-  // Show it in the UI
-  const tag = document.getElementById('UserNameTag');
-  if (tag) tag.textContent = name;
+    // Show it in the UI
+    const tag = document.getElementById('UserNameTag');
+    if (tag) tag.textContent = name;
 
-  // Open the rank-match modal (move this after name is ready)
-  document.getElementById('rankmatchModal').style.display = 'block';
+    // Open the rank-match modal (move this after name is ready)
+    document.getElementById('rankmatchModal').style.display = 'block';
 });
 
 
