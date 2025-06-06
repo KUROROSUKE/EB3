@@ -47,6 +47,8 @@ auth.onAuthStateChanged(async user => {
     const playerRef = database.ref(`players/${user.uid}`);
     const exists = (await playerRef.once('value')).exists();
     document.getElementById("rankmatchModal").style.display = "block";
+    document.getElementById("UserDataMessage").innerHTML = "";
+    document.getElementById("name-change").value = "";
     if (!exists) {
         await playerRef.set({
             IsSerched: false,          // まだ対戦相手を探していない
