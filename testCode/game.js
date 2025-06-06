@@ -40,23 +40,42 @@ function getRandomName() {
     const rand = animals[Math.floor(Math.random() * animals.length)] + Math.floor(Math.random() * 1000);
     return rand;
 }
-auth.onAuthStateChanged(async user => {
-    if (!user) return;  // ログアウト時
+auth.onAuthStateChanged(async (user) => {
+  if (!user) return; // user logged-out — nothing to do
 
-    // デフォルト値を持った自分用ノードを作成（初回だけ）
-    const playerRef = database.ref(`players/${user.uid}`);
-    const userData = await playerRef.once('value')
-    const exists = (userData).exists();
-    document.getElementById("rankmatchModal").style.display = "block";
-    console.log(userData);
-    if (!exists) {
-        await playerRef.set({
-            IsSerched: false,          // まだ対戦相手を探していない
-            PeerID: '',                // Peer が立ち上がったら後で上書き
-            Name: getRandomName()     // Google なら表示名、メールなら null
-        });
-    }
+  const playerRef  = database.ref(`players/${user.uid}`);
+  const snapshot   = await playerRef.once('value');
+  let name;
+
+  if (snapshot.exists()) {
+    // ── existing player ───────────────────────────────
+    name = snapshot.child('Name').val(); // could be null
+  } else {
+    // ── first-time player ─────────────────────────────
+    name = user.displayName // sign-in
+            || (user.email ? user.email.split('@')[0] : null)
+            || getRandomName(); // fallback
+    await playerRef.set({
+        IsSearched : false,
+        PeerID     : '',
+        Name       : name
+    }); // set new data
+  }
+
+  // Final safeguard: if somehow name is still undefined, randomize it
+  if (!name) {
+    name = getRandomName();
+    await playerRef.update({ Name: name });
+  }
+
+  // Show it in the UI
+  const tag = document.getElementById('UserNameTag');
+  if (tag) tag.textContent = name;
+
+  // Open the rank-match modal (move this after name is ready)
+  document.getElementById('rankmatchModal').style.display = 'block';
 });
+
 
 
 
