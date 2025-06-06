@@ -65,9 +65,7 @@ auth.onAuthStateChanged(async (user) => {
     console.log(name);
 
     // Show it in the UI
-    const tag = document.getElementById('UserNameTag');
-    if (tag) tag.textContent = name;
-
+    document.getElementById('UserNameTag').innerHTML = name;
     // Open the rank-match modal (move this after name is ready)
     document.getElementById('rankmatchModal').style.display = 'block';
 });
