@@ -2379,3 +2379,8 @@ async function getOpponentPeerID(myUserName) {
     return null;
   }
 }
+function RankMatch() {
+    const opponentPeerID = getOpponentPeerID(peerID);
+    conn = peer.connect(opponentPeerID);
+    setupConnection();
+}
