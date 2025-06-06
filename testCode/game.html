@@ -60,7 +60,7 @@
     <script>
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
-            navigator.serviceWorker.register('./EB3/sw.js')
+            navigator.serviceWorker.register('https://kurorosuke.github.io/EB3/sw.js')
                 .then(reg => console.log('Service Worker registered:', reg.scope))
                 .catch(err => console.error('Service Worker registration failed:', err));
         });
