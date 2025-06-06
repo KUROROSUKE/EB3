@@ -1806,6 +1806,7 @@ async function findMostPointMaterial() {
 // ========== game reset and start ==========
 let materials = [];
 let imageCache = {};
+let peerID;
 let GameType;
 let JSZip;
 // init web game
@@ -2316,7 +2317,7 @@ function startPeer() {
     // DB登録
     const user = firebase.auth().currentUser;
     const userRef = database.ref("players/" + user.uid);
-    userRef.update({ PeerID: id })
+    userRef.update({ PeerID: peerID })
     document.getElementById("winSettingsModal").style.display = "none";
 }
 // get opponent's PeerID
