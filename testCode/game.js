@@ -45,9 +45,10 @@ auth.onAuthStateChanged(async user => {
 
     // デフォルト値を持った自分用ノードを作成（初回だけ）
     const playerRef = database.ref(`players/${user.uid}`);
-    const exists = (await playerRef.once('value')).exists();
+    const userData = await playerRef.once('value')
+    const exists = (userData).exists();
     document.getElementById("rankmatchModal").style.display = "block";
-    console.log(exists);
+    console.log(userData);
     if (!exists) {
         await playerRef.set({
             IsSerched: false,          // まだ対戦相手を探していない
