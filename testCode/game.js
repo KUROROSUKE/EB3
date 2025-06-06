@@ -65,7 +65,7 @@ auth.onAuthStateChanged(async (user) => {
     console.log(name);
 
     // Show it in the UI
-    document.getElementById('UserNameTag').innerHTML = name;
+    document.getElementById('UserNameTag').innerHTML = `現在の名前： ${name}`;
     // Open the rank-match modal (move this after name is ready)
     document.getElementById('rankmatchModal').style.display = 'block';
 });
@@ -200,6 +200,7 @@ async function changeName() {
     .then(() => {
         console.log("✅ 名前を更新しました");
         document.getElementById("UserDataMessage").innerHTML = "名前を更新しました";
+        document.getElementById('UserNameTag').innerHTML = `現在の名前： ${name}`;
     })
     .catch(error => {
         console.log("❌ エラー：" + error.message);
