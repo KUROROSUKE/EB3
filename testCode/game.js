@@ -100,6 +100,8 @@ function loginWithGoogle() {
     .then((result) => {
         const user = result.user;
         console.log("Google login success:", user);
+        document.getElementById("LoginModal").style.display = "none";
+        document.getElementById("UserDataModal").style.display = "block";
         startPeer(); // or any function you want to call after login
     })
     .catch((error) => {
