@@ -61,12 +61,6 @@ auth.onAuthStateChanged(async user => {
 
 // ======== login Modal =======
 // firebase authentication functions
-function login() {
-    const provider = new firebase.auth.GoogleAuthProvider();
-    auth.signInAnonymously().catch(error => {
-        alert("ログイン失敗：" + error.message);
-    });
-}
 function logout() {
     auth.signOut();
 }
@@ -150,6 +144,8 @@ function loginWithMail() {
         const user = userCredential.user;
         console.log("ログイン成功:", user);
         alert("ログイン成功しました");
+        document.getElementById("LoginModal").style.display = "none";
+        document.getElementById("UserDataModal").style.display = "block";
         startPeer(); // optional if you want to start after login
     })
     .catch((error) => {
