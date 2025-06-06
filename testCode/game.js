@@ -2341,9 +2341,16 @@ function startPeer() {
     document.getElementById("winSettingsModal").style.display = "none";
 }
 // get opponent's PeerID
+/**
+ * 待機中プレイヤー（IsSerched === true）の PeerID を 1 件だけ取得して返す。
+ * ─ 見つからなければ null を返す
+ * ─ 自分自身がヒットした場合も null
+ * @param {string} myUserName  自分のノードキー
+ * @returns {Promise<string|null>} 相手の PeerID または null
+ */
 async function getOpponentPeerID(myUserName) {
   try {
-    // 「対戦相手を探している人」を 1 人だけ取得
+    // ①「待機中」のプレイヤーを 1 人だけ取得
     const snap = await database
       .ref('players')
       .orderByChild('IsSerched')
@@ -2351,34 +2358,24 @@ async function getOpponentPeerID(myUserName) {
       .limitToFirst(1)
       .once('value');
 
-    if (!snap.exists()) return null;         // まだ誰も待っていない
+    if (!snap.exists()) return null;
 
-    // 取得したノード（1件）のキーを取り出す
-    let opponentKey = Object.keys(snap.val())[0];
+    // ② 見つかったノードのキーを取り出す
+    const opponentKey = Object.keys(snap.val())[0];
+    if (opponentKey === myUserName) return null;          // 自分だったら無視
 
-    // たまたま自分が取れてしまった場合は無視
-    if (opponentKey === myUserName) return null;
+    // ③ PeerID だけを読んでそのまま返す
+    const peerIDSnap = await database
+      .ref(`players/${opponentKey}/PeerID`)
+      .once('value');
 
-    const opponentRef = database.ref(`players/${opponentKey}`);
-    let opponentPeerID = null;
-
-    // ★ 同時に他プレイヤーが確保しないよう transaction でロック
-    await opponentRef.transaction(current => {
-      if (current && current.IsSerched) {
-        opponentPeerID = current.PeerID;     // ここで PeerID を拾う
-        current.IsSerched = false;           // 相手はもう検索状態ではない
-        current.Opponent = myUserName;       // （任意）誰に取られたか記録
-        return current;                      // → 書き戻してコミット
-      }
-      return;                                // IsSerched が既に false なら中止
-    });
-
-    return opponentPeerID;                   // 見つかっていれば文字列、ダメなら null
+    return peerIDSnap.val() ?? null;                      // 取得失敗時は null
   } catch (err) {
     console.error('getOpponentPeerID error:', err);
     return null;
   }
 }
+
 function RankMatch() {
     const user = firebase.auth().currentUser;
     const opponentPeerID = getOpponentPeerID(user.Name);
