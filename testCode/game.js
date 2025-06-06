@@ -2380,7 +2380,8 @@ async function getOpponentPeerID(myUserName) {
   }
 }
 function RankMatch() {
-    const opponentPeerID = getOpponentPeerID(peerID);
+    const user = firebase.auth().currentUser;
+    const opponentPeerID = getOpponentPeerID(user.Name);
     conn = peer.connect(opponentPeerID);
     setupConnection();
 }
