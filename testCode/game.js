@@ -46,6 +46,7 @@ auth.onAuthStateChanged(async (authUser) => {
     const playerRef = database.ref(`players/${authUser.uid}`);
     const snapshot  = await playerRef.once('value');
     let name = snapshot.child('Name').val();   // まず DB に入っている名前を読む
+    let rate = snapshot.child('Rate').val();   // まず DB に入っている名前を読む
 
     if (!snapshot.exists()) {
         // 新規ユーザ：ランダム名を作って丸ごと set
@@ -67,6 +68,7 @@ auth.onAuthStateChanged(async (authUser) => {
 
     // 画面に反映
     document.getElementById('UserNameTag').textContent = `現在の名前： ${name}`;
+    document.getElementById('my-rate').textContent = `現在のレート： ${rate}`;
     document.getElementById('rankmatchModal').style.display = 'block';
 });
 
