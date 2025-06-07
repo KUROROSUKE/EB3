@@ -923,7 +923,7 @@ async function p2_make() {
     });
 }
 // create p2.
-document.getElementById("generate_button").addEventListener("click", function () {
+document.getElementById("generate_button").addEventListener("click", async function () {
     if (turn == MineTurn) {
         document.getElementById("hintContainer").style.display = "none"; // 非表示
         document.getElementById("hint_button").style.display = "none"; // 非表示
@@ -932,7 +932,7 @@ document.getElementById("generate_button").addEventListener("click", function ()
         if (GameType=="CPU") {
             done("p2");
         } else {
-            p2_make();
+            await p2_make();
             shareAction(action="generate",otherData=MineTurn);
         }
     };
