@@ -1111,8 +1111,12 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         ExplainArea.style.fontSize = "5vh";
     };
 
-    document.getElementById("done_button").style.display = "none";
+    await new Promise(resolve => setTimeout(resolve, 100));
     const button = document.getElementById("nextButton");
+    if (!button) {
+        console.error("nextButton がまだ存在していません");
+        return;
+    }
     button.style.display = "inline";
     showDown();
 
@@ -2119,7 +2123,13 @@ async function winnerAndChangeButton() {
     
     document.getElementById("done_button").style.display = "none";
     const button = document.getElementById("nextButton");
+    await new Promise(resolve => setTimeout(resolve, 100));
+    if (!button) {
+        console.error("nextButton がまだ存在していません");
+        return;
+    }
     button.style.display = "inline";
+
     
     // 3. winner が false → 「次のゲーム」ボタン
     if (!winner) {
