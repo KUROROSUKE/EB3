@@ -2140,15 +2140,13 @@ async function winnerAndChangeButton() {
         button.addEventListener("click", async function () {
             // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
             p2_finish_select = true;
-            nextIsOK()
+            nextIsOK();
             button.style.display = "none";
             console.log("OK")
             await waitUntilBothTrue(
                 () => p1_finish_select,
                 () => p2_finish_select
             );
-            p1_finish_select = false
-            p2_finish_select = false
             // 5. 両方 OK なら、次のゲーム処理を実行
             numTurn += 1;
             resetGame();
@@ -2369,8 +2367,8 @@ async function finishSelect() {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
         p2_make_material = await search(arrayToObj(p2_selected_card));
-        conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
         p2_finish_select = true;
+        conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
     }
 }
 async function sharePoints() {
