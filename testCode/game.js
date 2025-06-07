@@ -1116,9 +1116,6 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     button.style.display = "inline";
     showDown();
 
-    const user = firebase.auth().currentUser;
-    if (IsRankMatch) {updateRating(user.uid, opponentUid);}
-
     if (!winner) {
         console.log("次のゲーム");
         numTurn += 1;
@@ -1134,6 +1131,8 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         console.log("ゲーム終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
+            const user = firebase.auth().currentUser;
+            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
             IsRankMatch = false;
             returnToStartScreen();
             p1_point = 0;
@@ -2438,7 +2437,6 @@ async function RankMatch() {
     // ③ 相手が即見つかった場合 → 通話役割分担を決める
     handShake(opponent);
 }
-
 function handShake(opponent) {
   const myUid = firebase.auth().currentUser.uid;
   const iAmCaller = myUid > opponent.uid;  // UID大小で先攻決定
@@ -2465,8 +2463,6 @@ function handShake(opponent) {
   }
   IsRankMatch = true;
 }
-
-// opponentUid
 async function updateRating(winnerUid, loserUid) {
     const ratingRef = database.ref("players");
 
