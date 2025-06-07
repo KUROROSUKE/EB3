@@ -2496,8 +2496,9 @@ function handShake(opponent, iAmCaller) {
             conn.send({ type: "role", value: "p2" });
 
             setupConnection();      // ★ caller も必ず渡す
-            changeTurn(turn);           // 先手番 UI 開放
+            
         });
+        changeTurn(turn);           // 先手番 UI 開放
 
     } else {
         /*************  callee (= p2)  *************/
