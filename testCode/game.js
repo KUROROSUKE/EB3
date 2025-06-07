@@ -2144,11 +2144,11 @@ async function winnerAndChangeButton() {
             button.style.display = "none";
             console.log("OK")
             await waitUntilBothTrue(
-                () => is_ok_p1,
-                () => is_ok_p2
+                () => p1_finish_select,
+                () => p2_finish_select
             );
-            is_ok_p1 = false
-            is_ok_p2 = false
+            p1_finish_select = false
+            p2_finish_select = false
             // 5. 両方 OK なら、次のゲーム処理を実行
             numTurn += 1;
             resetGame();
@@ -2315,7 +2315,7 @@ function setupConnection() {
 
         /* ラウンド継続合意 */
         if (data.type === "nextIsOK") {
-            is_ok_p1 = true;
+            p1_finish_select = true;
             return;
         }
 
