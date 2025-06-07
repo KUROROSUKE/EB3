@@ -2237,6 +2237,7 @@ function setupConnection() {
         /* shareVariables（初期手札送り返し）*/
         if (data.type === "shareVariables") {
             p1_hand = p2_hand;
+            document.getElementById("PeerModal").style.display = "none";
             startGame();
             return;
         }
@@ -2280,8 +2281,7 @@ function setupConnection() {
             p1_finish_select = false;
             p1_make_material = data.otherData;
             if (p2_finish_select) {
-                finish_done_select(p1_make_material,
-                                   p2_make_material, "p1");
+                finish_done_select(p1_make_material, p2_make_material, "p1");
             }
             return;
         }
