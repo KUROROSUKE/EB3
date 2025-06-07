@@ -53,19 +53,17 @@ auth.onAuthStateChanged(async (user) => {
             PeerID     : '',
             Name       : getRandomName()
         });
-    } else if (!snapshot.child('Name').val()) { // NameとIsSerched だけ欠けている
-        await playerRef.update({ IsSearched : false, Name: getRandomName() });
+    } else if (!snapshot.child('Name').val()) { // Name が欠けている　→ IsSerchedもない
+        name = getRandomName();
+        await playerRef.update({ IsSearched : false, Name: name });
     }
-
-    // Final safeguard: if somehow name is still undefined, randomize it
-    await playerRef.update({ Name: name });
-    console.log(name);
 
     // Show it in the UI
     document.getElementById('UserNameTag').innerHTML = `現在の名前： ${name}`;
     // Open the rank-match modal (move this after name is ready)
     document.getElementById('rankmatchModal').style.display = 'block';
 });
+
 
 
 
