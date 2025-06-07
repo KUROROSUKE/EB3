@@ -918,7 +918,8 @@ async function p2_make() {
             document.getElementById("done_button").style.display = "none";
             p2_make_material = await search(arrayToObj(p2_selected_card));
             resolve(p2_make_material);
-            if (GameType=="P2P") {finishSelect();}
+            console.log("this is p2_make()");
+            if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
         });
     });
 }
