@@ -40,32 +40,35 @@ function getRandomName() {
     const rand = animals[Math.floor(Math.random() * animals.length)] + Math.floor(Math.random() * 1000);
     return rand;
 }
-auth.onAuthStateChanged(async (user) => {
-    if (!user) return; // user logged-out — nothing to do
+auth.onAuthStateChanged(async (authUser) => {
+    if (!authUser) return;
 
-    const playerRef  = database.ref(`players/${user.uid}`);
-    const snapshot   = await playerRef.once('value');
-    let name;
-    name = getRandomName();
+    const playerRef = database.ref(`players/${authUser.uid}`);
+    const snapshot  = await playerRef.once('value');
+    let name = snapshot.child('Name').val();   // まず DB に入っている名前を読む
 
-    if (!snapshot.exists()) {                 // まだノードが無い
+    if (!snapshot.exists()) {
+        // 新規ユーザ：ランダム名を作って丸ごと set
+        name = getRandomName();
         await playerRef.set({
-            IsSearched : false,
-            PeerID     : '',
-            Name       : getRandomName()
+        IsSearched : false,
+        PeerID     : '',
+        Name       : name
         });
-    } else if (!snapshot.child('Name').val()) { // Name が欠けている　→ IsSerchedもない
-        await playerRef.update({ IsSearched : false, Name: name });
-    } else {
-        const user = firebase.auth().currentUser;
-        name = user.Name;
+    } else if (!name) {
+        // 既存だが Name が null / 空文字
+        name = getRandomName();
+        await playerRef.update({ Name: name, IsSearched: false });
+    } else if (!snapshot.child('IsSearched').exists()) {
+        // Name はあるが IsSearched が無い場合だけ補完
+        await playerRef.update({ IsSearched: false });
     }
 
-    // Show it in the UI
-    document.getElementById('UserNameTag').innerHTML = `現在の名前： ${name}`;
-    // Open the rank-match modal (move this after name is ready)
+    // 画面に反映
+    document.getElementById('UserNameTag').textContent = `現在の名前： ${name}`;
     document.getElementById('rankmatchModal').style.display = 'block';
 });
+
 
 
 
