@@ -2192,94 +2192,126 @@ function connectToPeer() {
     setupConnection();
 }
 //データを受け取った時の処理
-function setupConnection() {
+/* connection を必ず受け取る形に変更 */
+function setupConnection(connection) {
+    conn = connection;                     // 念のため代入
+
+    /*--- DataConnection が open したら共通初期化 ---*/
     conn.on('open', () => {
-        //console.log('🔗 接続しました！');
         GameType = "P2P";
+
+        /*   caller 側だけ role を送る  */
         if (MineTurn === "p1") {
-            conn.send({ type: "role", value: "p2" }); // ゲストに "p2" であることを通知
-            //conn.send({ type: "turn", value: turn }); // 現在のターンを送信
-            /*if (turn != MineTurn) {
-                document.getElementById("generate_button").style.display = "none";
-            } else if (search_materials(arrayToObj(p2_hand))) {
-                document.getElementById("generate_button").style.display = "inline";
-            }*/
+            conn.send({ type: "role", value: "p2" });
         }
+
         document.getElementById("PeerModal").style.display = "none";
-        startGame();
-        shareVariable();
+        startGame();          // ここで盤面生成
+        shareVariable();      // 山札や手札を同期
     });
-    //データの処理
+
+    /*--- 受信データ ---*/
     conn.on('data', data => {
-        console.log(data);
-        //console.log("📩 受信データ:", data);
-        if (data.type === "role" && MineTurn === null) {
-            MineTurn = data.value;
-            //console.log(`✅ あなたは ${MineTurn} になりました！`);
+        console.log("📩", data);
+
+        /* role を受け取った側 (＝p2) はここで MineTurn 確定 */
+        if (data.type === "role") {
+            MineTurn = data.value;        // "p2"
+            turn     = "p1";              // ゲームは常に p1 から開始
+            changeTurn(turn);             // UI を開放
+            return;                       // これだけは即 return
         }
+
+        /* variables 同期 */
         if (data.type === "variables") {
-            p1_hand = data.p1_hand;
-            deck = data.deck;
-            turn = data.turn;
+            p1_hand   = data.p1_hand;
+            deck      = data.deck;
+            turn      = data.turn;
             WIN_POINT = data.win_point;
-            WIN_TURN = data.win_turn;
-            loadMaterials(data.compounds_url).then(elem => {materials = elem});
-            console.log(materials);
-            MineTurn = data.PartnerTurn=="p1" ? "p2" : "p1";
+            WIN_TURN  = data.win_turn;
+            loadMaterials(data.compounds_url)
+                .then(elem => { materials = elem; });
+
+            MineTurn  = (data.PartnerTurn === "p1") ? "p2" : "p1";
+            return;
         }
-        if (data.type == "shareVariables") {
+
+        /* shareVariables（初期手札送り返し）*/
+        if (data.type === "shareVariables") {
             p1_hand = p2_hand;
+            return;
         }
+
+        /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            console.log(`turn ::  ${turn}`)
-            if (turn != MineTurn) {
-                document.getElementById("generate_button").style.display = "none";
-            } else if (search_materials(arrayToObj(p2_hand))) {
-                document.getElementById("generate_button").style.display = "inline";
-            }
-            //console.log(`🔄 ターン更新: ${turn}`);
+            changeTurn(turn);             // generate_button の表示など
+            return;
         }
+
+        /* アクション共有 */
         if (data.type === "action") {
-            if (data.action == "exchange") {
-                console.log("this")
-                deck = data.deck
-                dropped_cards_p1.push(data.otherData)
+            if (data.action === "exchange") {
+                deck = data.deck;
+                dropped_cards_p1.push(data.otherData);
+
                 const blob = imageCache[elementToNumber[data.otherData]];
-                const img = new Image();
-                img.src = URL.createObjectURL(blob);
-                img.alt = data.otherData;
-                img.style.border = "1px solid #000"
-                document.getElementById("dropped_area_p1").appendChild(img);
+                const img  = new Image();
+                img.src   = URL.createObjectURL(blob);
+                img.alt   = data.otherData;
+                img.style.border = "1px solid #000";
+                document
+                    .getElementById("dropped_area_p1")
+                    .appendChild(img);
+
                 checkRon(data.otherData);
-            } else if (data.action == "generate") {console.log("generate this in get action of generate");p2_make()}
-        }
-        if (data.type === "selected") {
-            p1_finish_select = false
-            p1_make_material = data.otherData
-            //console.log(data.otherData)
-            if (p2_finish_select) {
-            } else {
-                console.log("get p1 selected & do finish_done_select");
-                finish_done_select(p1_make_material, p2_make_material,"p1")
+
+            } else if (data.action === "generate") {
+                p2_make();                // 相手が上がり操作
             }
-            //もし自分がもうdoneしていたらdoneしない。
-            //もしp2（自分）がもう上がっていたならすぐにfinish_done_select
+            return;
         }
+
+        /* 選択結果 */
+        if (data.type === "selected") {
+            p1_finish_select = false;
+            p1_make_material = data.otherData;
+            if (p2_finish_select) {
+                finish_done_select(p1_make_material,
+                                   p2_make_material, "p1");
+            }
+            return;
+        }
+
+        /* スコア同期 */
         if (data.type === "pointsData") {
-            document.getElementById("p1_point").innerHTML += `+${data.p1_point - p1_point}`
-            document.getElementById("p2_point").innerHTML += `+${data.p2_point - p2_point}`
-            document.getElementById("p1_explain").innerHTML = data.p1_explain
-            document.getElementById("p2_explain").innerHTML = data.p2_explain
-            p1_point = data.p1_point
-            p2_point = data.p2_point
-            winnerAndChangeButton()
+            document.getElementById("p1_point").innerHTML +=
+                `+${data.p1_point - p1_point}`;
+            document.getElementById("p2_point").innerHTML +=
+                `+${data.p2_point - p2_point}`;
+            document.getElementById("p1_explain").innerHTML = data.p1_explain;
+            document.getElementById("p2_explain").innerHTML = data.p2_explain;
+            p1_point = data.p1_point;
+            p2_point = data.p2_point;
+            winnerAndChangeButton();
+            return;
         }
+
+        /* ラウンド継続合意 */
         if (data.type === "nextIsOK") {
-            is_ok_p1 = true
+            is_ok_p1 = true;
+            return;
         }
+
+        /* 個別フィールド更新（保険） */
         if (data.p1_hand !== undefined) p1_hand = data.p1_hand;
-        if (data.deck !== undefined) deck = data.deck;
+        if (data.deck   !== undefined) deck   = data.deck;
+    });
+
+    /*--- 切断 ---*/
+    conn.on('close', () => {
+        alert("対戦相手が切断しました");
+        returnToStartScreen();
     });
 }
 function shareVariable() {
@@ -2457,23 +2489,22 @@ function handShake(opponent, iAmCaller) {
     if (iAmCaller) {
         /*************  caller  (= p1)  *************/
         MineTurn = "p1";
-        turn     = "p1";          // ゲームは必ず p1 先手
+        turn     = "p1";
 
         conn = peer.connect(opponent.peerID, { reliable: true });
 
-        conn.on("open", () => {
-            // 相手に「あなたは p2 ですよ」と通知
-            conn.send({ type: "role", mineTurn: "p2" });
+        conn.on('open', () => {
+            // 相手を p2 に指定
+            conn.send({ type: "role", value: "p2" });
 
-            setupConnection();
-            changeTurn(turn);     // 先手番 UI 解放
+            setupConnection(conn);      // ★ caller も必ず渡す
+            changeTurn(turn);           // 先手番 UI 開放
         });
 
     } else {
         /*************  callee (= p2)  *************/
         MineTurn = "p2";
-        // 受信側は peer.on('connection') で拾うだけ
-        // その中で setupConnection() を呼び出す
+        // 待受け側は peer.on('connection') で setupConnection 済み
     }
 }
 async function updateRating(winnerUid, loserUid) {
