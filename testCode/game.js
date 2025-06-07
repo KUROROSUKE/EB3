@@ -53,8 +53,8 @@ auth.onAuthStateChanged(async (user) => {
             PeerID     : '',
             Name       : getRandomName()
         });
-    } else if (!snapshot.child('Name').val()) { // Name だけ欠けている
-        await playerRef.update({ Name: getRandomName() });
+    } else if (!snapshot.child('Name').val()) { // NameとIsSerched だけ欠けている
+        await playerRef.update({ IsSearched : false, Name: getRandomName() });
     }
 
     // Final safeguard: if somehow name is still undefined, randomize it
