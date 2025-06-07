@@ -2216,7 +2216,7 @@ function setupConnection() {
         if (data.type === "role") {
             MineTurn = data.value;        // "p2"
             turn     = "p1";              // ゲームは常に p1 から開始
-            updateTurnUI(turn);             // UI を開放
+            changeTurn(turn);             // UI を開放
             return;                       // これだけは即 return
         }
 
@@ -2243,7 +2243,7 @@ function setupConnection() {
         /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            updateTurnUI(data.value);             // generate_button の表示など
+            changeTurn(turn);             // generate_button の表示など
             return;
         }
 
@@ -2333,19 +2333,15 @@ function shareAction(action, otherData) {
         console.error("⚠️ 接続が開かれていません！ アクションを送信できません。");
     }
 }
-function updateTurnUI(newTurn) {
-    // 🔸 UI のみ書き換え（generate_button の表示など）
-    turn = newTurn;
-    if (turn !== MineTurn) {
-        document.getElementById("generate_button").style.display = "none";
-    } else if (search_materials(arrayToObj(p2_hand))) {
-        document.getElementById("generate_button").style.display = "inline";
-    }
-}
 function changeTurn(newTurn) {
-    updateTurnUI(newTurn);          // ① UI 更新
+    //console.log(`🔄 ターン変更: ${newTurn}`);
     if (conn && conn.open) {
-        conn.send({ type: "turn", value: newTurn }); // ② 相手へ通知
+        conn.send({ type: "turn", value: newTurn });
+        if (turn != MineTurn) {
+            document.getElementById("generate_button").style.display = "none";
+        } else if (search_materials(arrayToObj(p2_hand))) {
+            document.getElementById("generate_button").style.display = "inline";
+        }
     }
 }
 async function finishSelect() {
@@ -2500,9 +2496,8 @@ function handShake(opponent, iAmCaller) {
             conn.send({ type: "role", value: "p2" });
 
             setupConnection();      // ★ caller も必ず渡す
-            
+            changeTurn(turn);           // 先手番 UI 開放
         });
-        changeTurn(turn);           // 先手番 UI 開放
 
     } else {
         /*************  callee (= p2)  *************/
