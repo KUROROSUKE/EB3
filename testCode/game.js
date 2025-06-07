@@ -2326,10 +2326,8 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
-        if (!document.getElementById("nextButton").textContent.trim()=="ラウンド終了") {
-            alert("対戦相手が切断しました");
-            returnToStartScreen();
-        }
+        alert("ゲーム終了");
+        returnToStartScreen();
     });
 }
 function shareVariable() {
