@@ -2420,86 +2420,85 @@ function connectToOpponent(opUid, opPeerID) {
 /* ==============================================================
  * RankMatch — 完全対称・1 クリックでつながるランクマッチ
  * ============================================================== */
+/* ==============================================================
+ * 完全修正版 RankMatch() - ランクマッチ処理
+ * ============================================================== */
+/* ==============================================================
+ * 完全修正版 RankMatch() - ランクマッチ処理
+ * ============================================================== */
 async function RankMatch() {
-  /* ★1 連打防止＆ステータス表示 ---------------------------- */
   const btn = document.getElementById("RankMatchButton");
-  btn.disabled   = true;
+  btn.disabled = true;
   btn.textContent = "マッチング中…";
 
   const authUser = firebase.auth().currentUser;
-  const myUid    = authUser.uid;
-  const myPeerID = peer.id;                         // startPeer() 後なら取得可
+  const myUid = authUser.uid;
+  const myPeerID = peer.id;
   const queueRef = database.ref("rankQueue");
 
-  let opponent = null;                              // { uid, peerID }
+  let opponent = null;
 
-  /* ① /rankQueue を原子操作して「待機」or「成立」を判定 */
+  // ① トランザクションでキュー登録 or ペア確定
   await queueRef.transaction(current => {
     if (current === null) {
-      // キューが空 ─ 自分が 1 番手
-      return { uid: myUid, peerID: myPeerID,
-               ts: firebase.database.ServerValue.TIMESTAMP };
+      // キューが空 → 自分が待機
+      return {
+        uid: myUid,
+        peerID: myPeerID,
+        ts: firebase.database.ServerValue.TIMESTAMP
+      };
     }
     if (current.uid !== myUid) {
-      // 既に待機者あり ─ 引き取り & キューを空に
+      // 待機者がいた → 対戦相手を取得
       opponent = current;
-      return null;
+      return null; // キューを空にする
     }
-    return;   // 稀に自分が既に入っていた場合
+    return; // 稀に自分が既にキューにいた場合
   });
 
-  /* ② 相手がいない ⇒ 待機し、空になった瞬間に逆引きして取得 */
+  // ② 自分が待機者だった場合
   if (!opponent) {
-    queueRef.on("value", async snap => {
-      if (snap.exists()) return;              // まだ拾われていない
-      queueRef.off();                         // マッチ成立！
-
-      // 自分を拾った相手を /players から逆引き
-      const oppSnap = await database.ref("players")
-        .orderByChild("IsSearched").equalTo(false)
-        .once("value");
-      oppSnap.forEach(c => {
-        if (c.key !== myUid) {
-          opponent = { uid: c.key, peerID: c.child("PeerID").val() };
-        }
-      });
-      handShake(opponent);                    // → 手順③
+    // 誰かが自分を拾ってキューを空にしてくれるのを待つ
+    queueRef.on('value', snap => {
+      if (!snap.exists()) {
+        queueRef.off();
+        // 誰かがマッチングしてくれた → 待受に入る
+        btn.disabled = false;
+        btn.textContent = "対戦"; // ボタン復帰（ただし何も押さなくていい）
+      }
     });
-    return;                                   // 自分は待機表示のまま
+    return;
   }
 
-  /* ③ 相手が即見つかった場合 */
-  handShake(opponent);                        // → 手順③
+  // ③ 相手が即見つかった場合 → 通話役割分担を決める
+  handShake(opponent);
 }
 
 /* ==============================================================
- * handShake — caller / callee を即決 & 接続
+ * handShake() - 呼び出し役と待受役を分担
  * ============================================================== */
 function handShake(opponent) {
   const myUid = firebase.auth().currentUser.uid;
-  const btn   = document.getElementById("RankMatchButton");
-
-  /* UID の大小で先攻 (caller) 判定 —— 任意の決め方で OK */
-  const iAmCaller = myUid > opponent.uid;
+  const iAmCaller = myUid > opponent.uid;  // UID大小で先攻決定
 
   if (iAmCaller) {
-    MineTurn = "p1";                 // ★2 先攻は p1 を宣言
+    MineTurn = "p1";         // 先攻
     conn = peer.connect(opponent.peerID);
-    setupConnection();               // データチャネルハンドラ登録
+    setupConnection();
   } else {
-    MineTurn = "p2";                 // ★2 待受は p2
-    /* 待受側は startPeer() 済みの peer.on('connection') に任せる */
+    MineTurn = "p2";         // 後攻は何もしない（peer.on('connection')を待つ）
   }
 
-  /* 双方とも IsSearched を false → マッチ完了の印 */
+  // IsSearched フラグを両者ともfalseへ更新
   const updates = {};
-  updates[`players/${myUid}/IsSearched`]        = false;
+  updates[`players/${myUid}/IsSearched`] = false;
   updates[`players/${opponent.uid}/IsSearched`] = false;
   database.ref().update(updates);
 
-  /* ★3 ボタン UI を元に戻す ------------------------------ */
+  // ボタン復帰（主に即時マッチのとき用）
+  const btn = document.getElementById("RankMatchButton");
   if (btn) {
-    btn.disabled   = false;
+    btn.disabled = false;
     btn.textContent = "対戦";
   }
 }
