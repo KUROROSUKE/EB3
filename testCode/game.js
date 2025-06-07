@@ -2459,13 +2459,13 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";          // ゲームは必ず p1 先手
 
-        const conn = peer.connect(opponent.peerID, { reliable: true });
+        conn = peer.connect(opponent.peerID, { reliable: true });
 
         conn.on("open", () => {
             // 相手に「あなたは p2 ですよ」と通知
             conn.send({ type: "role", mineTurn: "p2" });
 
-            setupConnection(conn, opponent.uid);
+            setupConnection();
             changeTurn(turn);     // 先手番 UI 解放
         });
 
