@@ -1131,17 +1131,18 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         console.log("ゲーム終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
+            if (conn) conn.close();
+            if (peer) peer.disconnect();
             const user = firebase.auth().currentUser;
-            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
+            if (IsRankMatch) { updateRating(user.uid, opponentUid); }
             IsRankMatch = false;
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
             returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
             numTurn = 1;
             resetGame();
-            button.style.display = "none";
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
         });
     };
 }
@@ -2119,7 +2120,7 @@ async function winnerAndChangeButton() {
     document.getElementById("done_button").style.display = "none";
     const button = document.getElementById("nextButton");
     button.style.display = "inline";
-  
+    
     // 3. winner が false → 「次のゲーム」ボタン
     if (!winner) {
         console.log("次のゲーム");
@@ -2145,22 +2146,22 @@ async function winnerAndChangeButton() {
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
         });
-        } 
-        // 6. winner が true → 「ラウンド終了」ボタン
-        else {
+    } else {
         console.log("ラウンド終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
+            if (conn) conn.close();
+            if (peer) peer.disconnect();
+            const user = firebase.auth().currentUser;
+            if (IsRankMatch) { updateRating(user.uid, opponentUid); }
+            IsRankMatch = false;
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
             returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
-            numTurn = 0;
+            numTurn = 1;
             resetGame();
-            button.style.display = "none";
-            
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-            conn.close();
         });
     }
 }
@@ -2315,8 +2316,11 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
-        alert("対戦相手が切断しました");
-        returnToStartScreen();
+        const button = document.getElementById("nextButton");
+        if (button.textContent != "ラウンド終了") {
+            alert("対戦相手が切断しました");
+            returnToStartScreen();
+        }
     });
 }
 function shareVariable() {
