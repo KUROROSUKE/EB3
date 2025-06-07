@@ -1040,7 +1040,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     document.getElementById("hint_button").style.display = "none";
     document.getElementById("hintContainer").style.display = "none";
 
-    p2_make_material = await p2_make();
+    await p2_make();
     let predictedMaterialP2 = await runModel(who=="p1" ? 0:1, p2_make_material.f);
     const p1_make_material = p1_ron ? ronMaterial : await p1_make(predictedMaterialP2);
     console.log(p1_make_material);
@@ -1193,7 +1193,7 @@ function shuffle(array) {
 }
 // if no drawable card, then done() in drawCard()
 async function no_draw_card() {
-    p2_make_material = await p2_make();
+    await p2_make();
     
     // 待機用のPromise
     await new Promise(resolve => {
@@ -2279,7 +2279,7 @@ function setupConnection() {
                 checkRon(data.otherData);
 
             } else if (data.action === "generate") {
-                p2_make();                // 相手が上がり操作
+                p2_make();
             }
             return;
         }
