@@ -2237,6 +2237,7 @@ function setupConnection() {
         /* shareVariables（初期手札送り返し）*/
         if (data.type === "shareVariables") {
             p1_hand = p2_hand;
+            startGame();
             return;
         }
 
