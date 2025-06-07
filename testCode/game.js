@@ -1198,7 +1198,7 @@ async function no_draw_card() {
     // 待機用のPromise
     await new Promise(resolve => {
         const checkInterval = setInterval(() => {
-            if (!p1_finish_select && !p2_finish_select) {
+            if (p1_finish_select && p2_finish_select) {
                 clearInterval(checkInterval);
                 resolve();
             }
@@ -1981,8 +1981,8 @@ function resetGame() {
             changeTurn(turn);
         }
     }
-    p1_finish_select = true;
-    p2_finish_select = true;
+    p1_finish_select = false;
+    p2_finish_select = false;
 
     document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
     document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
@@ -2047,8 +2047,8 @@ function startGame() {
 
 // ========== P2P communication ==========
 let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
-let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
-let p1_make_material = {} //p1が生成した物質が送られてきたときにMaterial形式で代入される
+let p1_finish_select = false; let p2_finish_select = false
+let p1_make_material = {}; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 async function finish_done_select(p1_make_material,p2_make_material,who,isRon=false) {
     dora = await get_dora();
@@ -2278,10 +2278,12 @@ function setupConnection() {
 
         /* 選択結果 */
         if (data.type === "selected") {
-            p1_finish_select = false;
+            p1_finish_select = true;
             p1_make_material = data.otherData;
             if (p2_finish_select) {
-                finish_done_select(p1_make_material, p2_make_material, "p1");
+                search(arrayToObj(p2_selected_card)).then(p2_make_material => {
+                    finish_done_select(p1_make_material, p2_make_material, "p1");
+                });
             }
             return;
         }
@@ -2352,9 +2354,9 @@ function changeTurn(newTurn) {
 async function finishSelect() {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
-        p2_make_material = await search(arrayToObj(p2_selected_card))
+        p2_make_material = await search(arrayToObj(p2_selected_card));
         conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
-        p2_finish_select = false
+        p2_finish_select = true;
     }
 }
 async function sharePoints() {
