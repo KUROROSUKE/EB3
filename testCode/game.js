@@ -2048,7 +2048,7 @@ function startGame() {
 // ========== P2P communication ==========
 let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
 let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
-let p1_make_material = {}; p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
+let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 async function finish_done_select(p1_make_material,p2_make_material,who,isRon=false) {
     dora = await get_dora();
