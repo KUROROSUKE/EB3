@@ -2326,8 +2326,10 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
-        alert("対戦相手が切断しました");
-        returnToStartScreen();
+        if (document.getElementById("nextButton").textContent.trim()=="ラウンド終了") {
+            alert("対戦相手が切断しました");
+            returnToStartScreen();
+        }
     });
 }
 function shareVariable() {
@@ -2460,7 +2462,7 @@ async function RankMatch() {
 
         const RankMatchButton = document.getElementById("RankMatchButton");
         RankMatchButton.innerHTML = "マッチング中...";
-        RankMatchButton.ariaDisabled = null;
+        RankMatchButton.setAttribute("aria-disabled", "false");
         // エントリをタイムスタンプ昇順で並べ替え
         const entries = Object.entries(list)
                               .sort(([, a], [, b]) => a.ts - b.ts);
@@ -2494,11 +2496,11 @@ async function RankMatch() {
 
         // 監視解除（マッチング完了）
         queueRef.off("value");
-        RankMatchButton.innerHTML = "対戦";
-        RankMatchButton.ariaDisabled = true;
-
+        IsRankMatch = true;
         // ③ Peer 接続確立
         handShake(opponent, iAmCaller);
+        RankMatchButton.innerHTML = "対戦";
+        RankMatchButton.setAttribute("aria-disabled", "true");
     });
 }
 function handShake(opponent, iAmCaller) {
