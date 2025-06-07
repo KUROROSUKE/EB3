@@ -46,6 +46,7 @@ auth.onAuthStateChanged(async (user) => {
     const playerRef  = database.ref(`players/${user.uid}`);
     const snapshot   = await playerRef.once('value');
     let name;
+    name = getRandomName();
 
     if (!snapshot.exists()) {                 // まだノードが無い
         await playerRef.set({
@@ -54,8 +55,10 @@ auth.onAuthStateChanged(async (user) => {
             Name       : getRandomName()
         });
     } else if (!snapshot.child('Name').val()) { // Name が欠けている　→ IsSerchedもない
-        name = getRandomName();
         await playerRef.update({ IsSearched : false, Name: name });
+    } else {
+        const user = firebase.auth().currentUser;
+        name = user.Name;
     }
 
     // Show it in the UI
