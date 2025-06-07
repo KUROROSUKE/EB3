@@ -2377,11 +2377,63 @@ async function getOpponentPeerID(myUserName) {
   }
 }
 
+/************************************************************************
+ * 1. 相手を 1 人だけ即時検索（まだ待っている人がいるか？）
+ ************************************************************************/
+async function findOpponent(myUid) {
+  const snap = await database.ref('players')
+      .orderByChild('IsSearched').equalTo(true)  // ← ✅タイポ修正済み
+      .once('value');
+
+  let opponent = null;
+  snap.forEach(child => {
+    // 自分以外 & PeerID が入っている人だけ採用
+    if (child.key !== myUid && child.child('PeerID').val()) {
+      opponent = { uid: child.key, peerID: child.child('PeerID').val() };
+      return true;                                // break forEach
+    }
+  });
+  return opponent;                                // なければ null
+}
+
+/************************************************************************
+ * 2. 見つかった／待ち受けに回る／リスナーで拾う
+ ************************************************************************/
+function connectToOpponent(opUid, opPeerID) {
+  // 双方とも IsSearched を false に戻す（マッチ完了の印）
+  const updates = {};
+  updates[`players/${auth.currentUser.uid}/IsSearched`] = false;
+  updates[`players/${opUid}/IsSearched`]             = false;
+  database.ref().update(updates);
+
+  // P2P 接続
+  conn = peer.connect(opPeerID);
+  setupConnection();
+  GameType = "P2P";
+}
+
 async function RankMatch() {
-    const user = firebase.auth().currentUser;
-    const playerRef  = database.ref(`players/${user.uid}`);
-    await playerRef.update({IsSearched: true})
-    const opponentPeerID = await getOpponentPeerID(user.Name);
-    conn = peer.connect(opponentPeerID);
-    setupConnection();
+  const user   = firebase.auth().currentUser;
+  const myUid  = user.uid;
+  const myRef  = database.ref(`players/${myUid}`);
+
+  /* ① まだ待っている相手がいないか確認 */
+  let opponent = await findOpponent(myUid);
+  if (opponent) {                       // すぐ見つかった
+    connectToOpponent(opponent.uid, opponent.peerID);
+    return;
+  }
+
+  /* ② 誰もいなければ自分が待機宣言してリスナー待ち */
+  await myRef.update({ IsSearched: true });
+
+  const handler = database.ref('players')
+    .orderByChild('IsSearched').equalTo(true)
+    .on('child_added', snap => {
+      // 自分以外で PeerID があるノードを捕捉
+      if (snap.key === myUid || !snap.child('PeerID').val()) return;
+
+      database.ref('players').off('child_added', handler);  // 1 回きりで解除
+      connectToOpponent(snap.key, snap.child('PeerID').val());
+    });
 }
