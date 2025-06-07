@@ -7,8 +7,8 @@ let time = "game";
 let p1_is_acting = false;
 // define game state
 const card_num = 8;
-let WIN_POINT = card_num*30 + 10;
-let WIN_TURN = 10;
+let WIN_POINT = 100;
+let WIN_TURN = 5;
 let numTurn = 1;
 let turn = "p1";
 // define constant variables
@@ -24,13 +24,13 @@ let MineTurn = null;
 // ========== firebase authentication/dataset settings ==========
 // firebase Realtime DB config
 const firebaseConfig = {
-  apiKey: "AIzaSyC0XCxBLbxSg9JVsv8RM89P5N2uLUyonOI",
-  authDomain: "elementbattle3-54850.firebaseapp.com",
-  projectId: "elementbattle3-54850",
-  storageBucket: "elementbattle3-54850.appspot.com",
-  messagingSenderId: "192129204644",
-  appId: "1:192129204644:web:a585308d0e2927648e8131",
-  measurementId: "G-4DX8BD16PN"
+    apiKey: "AIzaSyC0XCxBLbxSg9JVsv8RM89P5N2uLUyonOI",
+    authDomain: "elementbattle3-54850.firebaseapp.com",
+    projectId: "elementbattle3-54850",
+    storageBucket: "elementbattle3-54850.appspot.com",
+    messagingSenderId: "192129204644",
+    appId: "1:192129204644:web:a585308d0e2927648e8131",
+    measurementId: "G-4DX8BD16PN"
 };
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
@@ -1318,7 +1318,7 @@ async function saveWinSettings() {
     const thresholdInput = parseFloat(document.getElementById("threshold").value);
     const isTraining = document.getElementById("IsTraining").value;
     const compoundsSelection = document.getElementById("compoundsSelection").value;
-    compoundsURL = compoundsSelection === "url" ? document.getElementById("compoundsURL").value : `https://kurorosuke.github.io/compounds/${compoundsSelection}.json`;
+    compoundsURL = compoundsSelection === "url" ? document.getElementById("compoundsURL").value : `https://kurorosuke.github.io/compounds/obf_${compoundsSelection}_min.json`;
 
     if (isNaN(winPointInput)) {
         alert("コールドスコア は 1 以上 999 以下の数値を入力してください。");
@@ -1875,7 +1875,7 @@ function random_hand() {
 }
 // load materials JSON file (initialize)
 async function init_json() {
-    compoundsURL = "https://kurorosuke.github.io/compounds/obf_standard_min.json"
+    compoundsURL = "https://kurorosuke.github.io/compounds/obf_extended_min.json"
     materials = await loadMaterials(compoundsURL);
 }
 // load materials from url
