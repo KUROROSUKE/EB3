@@ -1111,12 +1111,8 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         ExplainArea.style.fontSize = "5vh";
     };
 
-    await new Promise(resolve => setTimeout(resolve, 100));
+    document.getElementById("done_button").style.display = "none";
     const button = document.getElementById("nextButton");
-    if (!button) {
-        console.error("nextButton がまだ存在していません");
-        return;
-    }
     button.style.display = "inline";
     showDown();
 
@@ -1135,18 +1131,17 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         console.log("ゲーム終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
-            if (conn) conn.close();
-            if (peer) peer.disconnect();
             const user = firebase.auth().currentUser;
-            if (IsRankMatch) { updateRating(user.uid, opponentUid); }
+            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
             IsRankMatch = false;
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
             returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
             numTurn = 1;
             resetGame();
+            button.style.display = "none";
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
         });
     };
 }
@@ -1203,7 +1198,7 @@ async function no_draw_card() {
     // 待機用のPromise
     await new Promise(resolve => {
         const checkInterval = setInterval(() => {
-            if (p1_finish_select && p2_finish_select) {
+            if (!p1_finish_select && !p2_finish_select) {
                 clearInterval(checkInterval);
                 resolve();
             }
@@ -1986,8 +1981,8 @@ function resetGame() {
             changeTurn(turn);
         }
     }
-    p1_finish_select = false;
-    p2_finish_select = false;
+    p1_finish_select = true;
+    p2_finish_select = true;
 
     document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
     document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
@@ -2052,8 +2047,8 @@ function startGame() {
 
 // ========== P2P communication ==========
 let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
-let p1_finish_select = false; let p2_finish_select = false
-let p1_make_material = {}; //p1が生成した物質が送られてきたときにMaterial形式で代入される
+let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
+let p1_make_material = {} //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 async function finish_done_select(p1_make_material,p2_make_material,who,isRon=false) {
     dora = await get_dora();
@@ -2123,14 +2118,8 @@ async function winnerAndChangeButton() {
     
     document.getElementById("done_button").style.display = "none";
     const button = document.getElementById("nextButton");
-    await new Promise(resolve => setTimeout(resolve, 100));
-    if (!button) {
-        console.error("nextButton がまだ存在していません");
-        return;
-    }
     button.style.display = "inline";
-
-    
+  
     // 3. winner が false → 「次のゲーム」ボタン
     if (!winner) {
         console.log("次のゲーム");
@@ -2139,14 +2128,16 @@ async function winnerAndChangeButton() {
         // クリック時の処理を async 化する
         button.addEventListener("click", async function () {
             // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
-            p2_finish_select = true;
-            nextIsOK();
+            is_ok_p2 = true;
+            nextIsOK()
             button.style.display = "none";
             console.log("OK")
             await waitUntilBothTrue(
-                () => p1_finish_select,
-                () => p2_finish_select
+                () => is_ok_p1,
+                () => is_ok_p2
             );
+            is_ok_p1 = false
+            is_ok_p2 = false
             // 5. 両方 OK なら、次のゲーム処理を実行
             numTurn += 1;
             resetGame();
@@ -2154,22 +2145,22 @@ async function winnerAndChangeButton() {
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
         });
-    } else {
+        } 
+        // 6. winner が true → 「ラウンド終了」ボタン
+        else {
         console.log("ラウンド終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
-            if (conn) conn.close();
-            if (peer) peer.disconnect();
-            const user = firebase.auth().currentUser;
-            if (IsRankMatch) { updateRating(user.uid, opponentUid); }
-            IsRankMatch = false;
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
             returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
-            numTurn = 1;
+            numTurn = 0;
             resetGame();
+            button.style.display = "none";
+            
+            const newButton = button.cloneNode(true);
+            button.parentNode.replaceChild(newButton, button);
+            conn.close();
         });
     }
 }
@@ -2287,12 +2278,10 @@ function setupConnection() {
 
         /* 選択結果 */
         if (data.type === "selected") {
-            p1_finish_select = true;
+            p1_finish_select = false;
             p1_make_material = data.otherData;
             if (p2_finish_select) {
-                search(arrayToObj(p2_selected_card)).then(p2_make_material => {
-                    finish_done_select(p1_make_material, p2_make_material, "p1");
-                });
+                finish_done_select(p1_make_material, p2_make_material, "p1");
             }
             return;
         }
@@ -2313,7 +2302,7 @@ function setupConnection() {
 
         /* ラウンド継続合意 */
         if (data.type === "nextIsOK") {
-            p1_finish_select = true;
+            is_ok_p1 = true;
             return;
         }
 
@@ -2324,11 +2313,8 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
-        const button = document.getElementById("nextButton");
-        if (button.textContent != "ラウンド終了") {
-            alert("対戦相手が切断しました");
-            returnToStartScreen();
-        }
+        alert("対戦相手が切断しました");
+        returnToStartScreen();
     });
 }
 function shareVariable() {
@@ -2366,9 +2352,9 @@ function changeTurn(newTurn) {
 async function finishSelect() {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
-        p2_make_material = await search(arrayToObj(p2_selected_card));
-        p2_finish_select = true;
+        p2_make_material = await search(arrayToObj(p2_selected_card))
         conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
+        p2_finish_select = false
     }
 }
 async function sharePoints() {
