@@ -2050,56 +2050,59 @@ let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
 let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
 let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
-async function finish_done_select(p1_make_material,p2_make_material_arg,who,isRon=false) {
-    dora = await get_dora();
+async function finish_done_select(p1_make_material, p2_make_material_arg, who, isRon = false) {
+    if (!p1_make_material || !p2_make_material_arg) {
+        console.error("⚠️ material data is missing — finish_done_select aborted.");
+        return;
+    }
+
+    const dora = await get_dora();
     console.log(`ドラ: ${dora}`);
     console.log(p1_make_material);
-    console.log(p2_make_material);
-    
+    console.log(p2_make_material_arg);
+
     let thisGame_p2_point = p2_make_material_arg.c;
     let thisGame_p1_point = p1_make_material.c;
 
-    // 有利な生成物の場合のボーナス
-    if (Boolean(p2_make_material_arg.e.includes(p1_make_material.b))) {
+    if (p2_make_material_arg.e?.includes?.(p1_make_material.b)) {
         thisGame_p2_point *= (1.5 + Math.random() / 2);
-    } else if (Boolean(p1_make_material.e.includes(p2_make_material_arg.b))) {
+    } else if (p1_make_material.e?.includes?.(p2_make_material_arg.b)) {
         thisGame_p1_point *= (1.5 + Math.random() / 2);
     }
 
-    // 役の中にドラが含まれる場合のボーナス
-    if (Boolean(Object.keys(p2_make_material_arg.d).includes(dora))) {
+    if (Object.keys(p2_make_material_arg.d).includes(dora)) {
         thisGame_p2_point *= 1.5;
-    } else if (Boolean(Object.keys(p1_make_material.d).includes(dora))) {
+    } else if (Object.keys(p1_make_material.d).includes(dora)) {
         thisGame_p1_point *= 1.5;
     }
 
-    // **ロン時のボーナス**
     if (isRon) {
-        who == "p2" ? thisGame_p2_point /= 1.2 : thisGame_p1_point /= 1.2
+        if (who === "p2") {
+            thisGame_p2_point /= 1.2;
+        } else {
+            thisGame_p1_point /= 1.2;
+        }
     }
 
-    who == "p2" ? thisGame_p1_point /= 1.5 : thisGame_p2_point /= 1.5;
+    if (who === "p2") {
+        thisGame_p1_point /= 1.5;
+    } else {
+        thisGame_p2_point /= 1.5;
+    }
 
-    // 小数点以下を四捨五入
     thisGame_p2_point = Math.round(thisGame_p2_point);
     thisGame_p1_point = Math.round(thisGame_p1_point);
 
-    // 得点を更新
-    p1_point += await thisGame_p1_point;
-    p2_point += await thisGame_p2_point;
+    p1_point += thisGame_p1_point;
+    p2_point += thisGame_p2_point;
 
-    console.log(thisGame_p1_point)
-    console.log(thisGame_p2_point)
-
-    // 画面に反映
-    document.getElementById("p2_point").innerHTML += `+${thisGame_p2_point}`;
-    document.getElementById("p1_point").innerHTML += `+${thisGame_p1_point}`;
+    document.getElementById("p1_point").innerHTML = p1_point.toString();
+    document.getElementById("p2_point").innerHTML = p2_point.toString();
     document.getElementById("p2_explain").innerHTML = `生成物質：${p2_make_material_arg.a}, 組成式：${p2_make_material_arg.b}`;
     document.getElementById("p1_explain").innerHTML = `生成物質：${p1_make_material.a}, 組成式：${p1_make_material.b}`;
 
-    sharePoints()
-
-    winnerAndChangeButton()
+    sharePoints();
+    winnerAndChangeButton();
 }
 // 1. まずは「is_ok_p1 と is_ok_p2 の両方が true になるのを待つ」関数。あんまりラグ関係ない
 function waitUntilBothTrue(getVar1, getVar2, interval = 100) {
@@ -2212,12 +2215,12 @@ function setupConnection() {
     conn.on('data', data => {
         console.log("📩", data);
 
-        /* role を受け取った側 (＝p2) はここで MineTurn 確定 */
+        /* role を受け取った側 (= p2) はここで MineTurn 確定 */
         if (data.type === "role") {
-            MineTurn = data.value;        // "p2"
-            turn     = "p1";              // ゲームは常に p1 から開始
-            changeTurn(turn);             // UI を開放
-            return;                       // これだけは即 return
+            MineTurn = data.value;   // "p2"
+            turn     = "p1";       // ゲームは常に p1 から開始
+            changeTurn(turn);        // UI を開放
+            return;                  // これだけは即 return
         }
 
         /* variables 同期 */
@@ -2227,8 +2230,13 @@ function setupConnection() {
             turn      = data.turn;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
-            loadMaterials(data.compounds_url)
-                .then(elem => { materials = elem; });
+
+            // ⬇⬇⬇ ここを修正: materials を読み込み終えてから盤面を作る ---------
+            (async () => {
+                materials = await loadMaterials(data.compounds_url);
+                startGame();                            // ★ ゲストはここで盤面生成
+            })();
+            // -----------------------------------------------------------------
 
             MineTurn  = (data.PartnerTurn === "p1") ? "p2" : "p1";
             return;
