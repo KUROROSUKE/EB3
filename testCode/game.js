@@ -2361,9 +2361,9 @@ function changeTurn(newTurn) {
 async function finishSelect() {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
-        p2_make_material = await search(arrayToObj(p2_selected_card));
+        p2_finish_select = false;
+        console.log("complete send selected to other player")
         conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
-        p2_finish_select = false
     }
 }
 async function sharePoints() {
