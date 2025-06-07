@@ -914,9 +914,9 @@ async function p2_make() {
 
     // ボタンクリックを待機
     return new Promise((resolve) => {
-        newButton.addEventListener("click", function () {
+        newButton.addEventListener("click", async function () {
             document.getElementById("done_button").style.display = "none";
-            p2_make_material = search(arrayToObj(p2_selected_card));
+            p2_make_material = await search(arrayToObj(p2_selected_card));
             resolve(p2_make_material);
             if (GameType=="P2P") {finishSelect();}
         });
@@ -2361,7 +2361,7 @@ function changeTurn(newTurn) {
 async function finishSelect() {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
-        p2_make_material = await search(arrayToObj(p2_selected_card))
+        p2_make_material = await search(arrayToObj(p2_selected_card));
         conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
         p2_finish_select = false
     }
