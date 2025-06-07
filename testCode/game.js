@@ -2409,6 +2409,7 @@ async function RankMatch() {
         const list = snap.val();
         if (!list) return;
 
+        document.getElementById("RankMatchButton").innerHTML = "マッチング中...";
         // エントリをタイムスタンプ昇順で並べ替え
         const entries = Object.entries(list)
                               .sort(([, a], [, b]) => a.ts - b.ts);
@@ -2442,6 +2443,7 @@ async function RankMatch() {
 
         // 監視解除（マッチング完了）
         queueRef.off("value");
+        document.getElementById("RankMatchButton").innerHTML = "対戦";
 
         // ③ Peer 接続確立
         handShake(opponent, iAmCaller);
