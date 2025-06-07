@@ -1207,7 +1207,7 @@ async function no_draw_card() {
 
     //console.log("next process");
     if (MineTurn === "p2") {
-        console.log("done")
+        console.log(p2_make_material);
         finish_done_select(p1_make_material, p2_make_material, "no-draw", isRon=false);
     }
 }
@@ -2289,6 +2289,7 @@ function setupConnection() {
             p1_finish_select = false;
             p1_make_material = data.otherData;
             if (p2_finish_select) {
+                console.log(p2_make_material);
                 finish_done_select(p1_make_material, p2_make_material, "p1");
             }
             return;
