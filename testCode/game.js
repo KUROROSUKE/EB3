@@ -2139,7 +2139,7 @@ async function winnerAndChangeButton() {
         // クリック時の処理を async 化する
         button.addEventListener("click", async function () {
             // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
-            is_ok_p2 = true;
+            p2_finish_select = true;
             nextIsOK()
             button.style.display = "none";
             console.log("OK")
