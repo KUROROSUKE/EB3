@@ -2418,36 +2418,55 @@ function connectToOpponent(opUid, opPeerID) {
  * 3. caller だけ peer.connect()、callee は待受
  */
 async function RankMatch() {
-  const myUid    = firebase.auth().currentUser.uid;
-  const myPeerID = peer.id;                 // startPeer() 後なら存在
-  const queueRef = database.ref('rankQueue');
+    const authUser  = firebase.auth().currentUser;
+    const myUid     = authUser.uid;
+    const myPeerID  = peer.id;                         // startPeer() 後なら取れる
+    const queueRef  = database.ref('rankQueue');
+    let   opponent  = null;                            // { uid, peerID }
 
-  /* ① まず child_removed リスナーを付ける ―― これが重要！ */
-  const onRemoved = snap => {
-    const op = snap.val();                  // キューから消えた＝相手確定
-    if (op.uid === myUid) return;           // 自分だったら無視
+    /* ------------------ ① マッチ待機キューを原子操作 ------------------ */
+    await queueRef.transaction(current => {
+        if (current === null) {
+        /* キューが空：自分が一番手として入る */
+            return { uid: myUid, peerID: myPeerID, ts: firebase.database.ServerValue.TIMESTAMP };
+        }
+        if (current.uid !== myUid) {
+        /* すでに誰かが待っている：取り出してキューを空に戻す */
+            opponent = current;        // 退避して外で使う
+            return null;               // ← キューをクリア
+        }
+        return;                      // 既に自分が入っている稀ケース
+    });
 
-    // 自分は caller になる
-    conn = peer.connect(op.peerID);
-    setupConnection();                      // ハンドラ登録
-    queueRef.off('child_removed', onRemoved);
-  };
-  queueRef.on('child_removed', onRemoved);
+    /* ------------------ ② 相手がいた？ いなかった？ ------------------ */
+    if (!opponent) {
+        /* （待機側）まだ相手がいないので、キューが空になる＝“誰かに拾われた”のを監視 */
+        queueRef.on('value', async snap => {
+        if (snap.exists()) return;            // まだ自分が残っている
+        queueRef.off();                       // 誰かに拾われた＝マッチ成立
 
-  /* ② そのあとで transaction() を実行する */
-  await queueRef.transaction(current => {
-    if (current === null)                   // キューが空 → 1 番手として待機
-      return { uid: myUid, peerID: myPeerID };
-    if (current.uid !== myUid)              // 既に誰かいる → 2 番手なので取り出す
-      return null;                          // pop ＝ child_removed が飛ぶ
-  });
+        // 自分を拾った相手の情報を /players から逆引き
+        const oppSnap = await database.ref('players')
+                            .orderByChild('IsSearched').equalTo(false)   // 例として
+                            .once('value');
+        oppSnap.forEach(c => {               // 1 人しかいない想定
+            if (c.key !== myUid) {
+            opponent = { uid: c.key, peerID: c.child('PeerID').val() };
+            }
+        });
+        handShake(opponent);                 // → 手順③へ
+        });
 
-  /* ③ 自分が 1 番手（待機側）の場合は何もしない
-        → 2 番手が connect() して来れば peer.on('connection') が発火する */
-}
+        /* 自分は待機表示などをしておく */
+        return;
+    }
 
-/* ------------------ ③ caller / callee を決定して接続 ------------------ */
-function handShake(opponent) {
+    /* （二人目側）すでに待っている人を拾った */
+    handShake(opponent);                     // → 手順③へ
+    }
+
+    /* ------------------ ③ caller / callee を決定して接続 ------------------ */
+    function handShake(opponent) {
     const myUid = firebase.auth().currentUser.uid;
 
     /* どちらが caller？ —— 決め方は何でも良い：ここでは UID の大小 */
