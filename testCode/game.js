@@ -2411,29 +2411,78 @@ function connectToOpponent(opUid, opPeerID) {
   setupConnection();
   GameType = "P2P";
 }
-
+/**
+ * RankMatch — 完全に対称な 2 プレイヤーマッチメイク
+ * 1. /rankQueue を transaction で占有 or 取得
+ * 2. caller / callee を決定
+ * 3. caller だけ peer.connect()、callee は待受
+ */
 async function RankMatch() {
-  const user   = firebase.auth().currentUser;
-  const myUid  = user.uid;
-  const myRef  = database.ref(`players/${myUid}`);
+  const authUser  = firebase.auth().currentUser;
+  const myUid     = authUser.uid;
+  const myPeerID  = peer.id;                         // startPeer() 後なら取れる
+  const queueRef  = database.ref('rankQueue');
+  let   opponent  = null;                            // { uid, peerID }
 
-  /* ① まだ待っている相手がいないか確認 */
-  let opponent = await findOpponent(myUid);
-  if (opponent) {                       // すぐ見つかった
-    connectToOpponent(opponent.uid, opponent.peerID);
+  /* ------------------ ① マッチ待機キューを原子操作 ------------------ */
+  await queueRef.transaction(current => {
+    if (current === null) {
+      /* キューが空：自分が一番手として入る */
+      return { uid: myUid, peerID: myPeerID, ts: firebase.database.ServerValue.TIMESTAMP };
+    }
+    if (current.uid !== myUid) {
+      /* すでに誰かが待っている：取り出してキューを空に戻す */
+      opponent = current;        // 退避して外で使う
+      return null;               // ← キューをクリア
+    }
+    return;                      // 既に自分が入っている稀ケース
+  });
+
+  /* ------------------ ② 相手がいた？ いなかった？ ------------------ */
+  if (!opponent) {
+    /* （待機側）まだ相手がいないので、キューが空になる＝“誰かに拾われた”のを監視 */
+    queueRef.on('value', async snap => {
+      if (snap.exists()) return;            // まだ自分が残っている
+      queueRef.off();                       // 誰かに拾われた＝マッチ成立
+
+      // 自分を拾った相手の情報を /players から逆引き
+      const oppSnap = await database.ref('players')
+                         .orderByChild('IsSearched').equalTo(false)   // 例として
+                         .once('value');
+      oppSnap.forEach(c => {               // 1 人しかいない想定
+        if (c.key !== myUid) {
+          opponent = { uid: c.key, peerID: c.child('PeerID').val() };
+        }
+      });
+      handShake(opponent);                 // → 手順③へ
+    });
+
+    /* 自分は待機表示などをしておく */
     return;
   }
 
-  /* ② 誰もいなければ自分が待機宣言してリスナー待ち */
-  await myRef.update({ IsSearched: true });
+  /* （二人目側）すでに待っている人を拾った */
+  handShake(opponent);                     // → 手順③へ
+}
 
-  const handler = database.ref('players')
-    .orderByChild('IsSearched').equalTo(true)
-    .on('child_added', snap => {
-      // 自分以外で PeerID があるノードを捕捉
-      if (snap.key === myUid || !snap.child('PeerID').val()) return;
+/* ------------------ ③ caller / callee を決定して接続 ------------------ */
+function handShake(opponent) {
+  const myUid = firebase.auth().currentUser.uid;
 
-      database.ref('players').off('child_added', handler);  // 1 回きりで解除
-      connectToOpponent(snap.key, snap.child('PeerID').val());
-    });
+  /* どちらが caller？ —— 決め方は何でも良い：ここでは UID の大小 */
+  const iAmCaller = myUid > opponent.uid;
+
+  if (iAmCaller) {
+    conn = peer.connect(opponent.peerID);
+    setupConnection();                     // データチャネルのハンドラ登録
+  }
+  /* callee 側は startPeer() 内で
+       peer.on('connection', c => { conn = c; setupConnection(); })
+     をすでにセット済みとしておく */
+
+  /* どちら側も戦闘フラグなどを更新 */
+  const updates = {};
+  updates[`players/${myUid}/IsSearched`]      = false;
+  updates[`players/${opponent.uid}/IsSearched`] = false;
+  database.ref().update(updates);
 }
