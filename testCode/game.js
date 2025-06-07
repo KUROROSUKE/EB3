@@ -916,7 +916,7 @@ async function p2_make() {
     return new Promise((resolve) => {
         newButton.addEventListener("click", function () {
             document.getElementById("done_button").style.display = "none";
-            const p2_make_material = search(arrayToObj(p2_selected_card));
+            p2_make_material = search(arrayToObj(p2_selected_card));
             resolve(p2_make_material);
             if (GameType=="P2P") {finishSelect();}
         });
@@ -1040,7 +1040,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     document.getElementById("hint_button").style.display = "none";
     document.getElementById("hintContainer").style.display = "none";
 
-    const p2_make_material = await p2_make();
+    p2_make_material = await p2_make();
     let predictedMaterialP2 = await runModel(who=="p1" ? 0:1, p2_make_material.f);
     const p1_make_material = p1_ron ? ronMaterial : await p1_make(predictedMaterialP2);
     console.log(p1_make_material);
@@ -1193,7 +1193,7 @@ function shuffle(array) {
 }
 // if no drawable card, then done() in drawCard()
 async function no_draw_card() {
-    const p2_make_material = await p2_make();
+    p2_make_material = await p2_make();
     
     // 待機用のPromise
     await new Promise(resolve => {
@@ -2048,7 +2048,7 @@ function startGame() {
 // ========== P2P communication ==========
 let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
 let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
-let p1_make_material = {} //p1が生成した物質が送られてきたときにMaterial形式で代入される
+let p1_make_material = {}; p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 async function finish_done_select(p1_make_material,p2_make_material,who,isRon=false) {
     dora = await get_dora();
