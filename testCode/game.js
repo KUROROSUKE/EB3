@@ -51,9 +51,10 @@ auth.onAuthStateChanged(async (authUser) => {
         // 新規ユーザ：ランダム名を作って丸ごと set
         name = getRandomName();
         await playerRef.set({
-        IsSearched : false,
-        PeerID     : '',
-        Name       : name
+            IsSearched : false,
+            PeerID     : '',
+            Name       : name,
+            Rate       : 100
         });
     } else if (!name) {
         // 既存だが Name が null / 空文字
@@ -2377,101 +2378,60 @@ async function getOpponentPeerID(myUserName) {
   }
 }
 
-/************************************************************************
- * 1. 相手を 1 人だけ即時検索（まだ待っている人がいるか？）
- ************************************************************************/
-async function findOpponent(myUid) {
-  const snap = await database.ref('players')
-      .orderByChild('IsSearched').equalTo(true)  // ← ✅タイポ修正済み
-      .once('value');
-
-  let opponent = null;
-  snap.forEach(child => {
-    // 自分以外 & PeerID が入っている人だけ採用
-    if (child.key !== myUid && child.child('PeerID').val()) {
-      opponent = { uid: child.key, peerID: child.child('PeerID').val() };
-      return true;                                // break forEach
-    }
-  });
-  return opponent;                                // なければ null
-}
-
-/************************************************************************
- * 2. 見つかった／待ち受けに回る／リスナーで拾う
- ************************************************************************/
-function connectToOpponent(opUid, opPeerID) {
-  // 双方とも IsSearched を false に戻す（マッチ完了の印）
-  const updates = {};
-  updates[`players/${auth.currentUser.uid}/IsSearched`] = false;
-  updates[`players/${opUid}/IsSearched`]             = false;
-  database.ref().update(updates);
-
-  // P2P 接続
-  conn = peer.connect(opPeerID);
-  setupConnection();
-  GameType = "P2P";
-}
 /**
  * RankMatch — 完全に対称な 2 プレイヤーマッチメイク
  * 1. /rankQueue を transaction で占有 or 取得
  * 2. caller / callee を決定
  * 3. caller だけ peer.connect()、callee は待受
  */
-/* ==============================================================
- * RankMatch — 完全対称・1 クリックでつながるランクマッチ
- * ============================================================== */
-/* ==============================================================
- * 完全修正版 RankMatch() - ランクマッチ処理
- * ============================================================== */
-/* ==============================================================
- * 完全修正版 RankMatch() - ランクマッチ処理
- * ============================================================== */
+let opponentUid;
 async function RankMatch() {
-  const btn = document.getElementById("RankMatchButton");
-  btn.disabled = true;
-  btn.textContent = "マッチング中…";
+    const btn = document.getElementById("RankMatchButton");
+    btn.disabled = true;
+    btn.textContent = "マッチング中…";
 
-  const authUser = firebase.auth().currentUser;
-  const myUid = authUser.uid;
-  const myPeerID = peer.id;
-  const queueRef = database.ref("rankQueue");
+    const authUser = firebase.auth().currentUser;
+    const myUid = authUser.uid;
+    const myPeerID = peer.id;
+    const queueRef = database.ref("rankQueue");
 
-  let opponent = null;
+    let opponent = null;
 
-  // ① トランザクションでキュー登録 or ペア確定
-  await queueRef.transaction(current => {
-    if (current === null) {
-      // キューが空 → 自分が待機
-      return {
-        uid: myUid,
-        peerID: myPeerID,
-        ts: firebase.database.ServerValue.TIMESTAMP
-      };
-    }
-    if (current.uid !== myUid) {
-      // 待機者がいた → 対戦相手を取得
-      opponent = current;
-      return null; // キューを空にする
-    }
-    return; // 稀に自分が既にキューにいた場合
-  });
-
-  // ② 自分が待機者だった場合
-  if (!opponent) {
-    // 誰かが自分を拾ってキューを空にしてくれるのを待つ
-    queueRef.on('value', snap => {
-      if (!snap.exists()) {
-        queueRef.off();
-        // 誰かがマッチングしてくれた → 待受に入る
-        btn.disabled = false;
-        btn.textContent = "対戦"; // ボタン復帰（ただし何も押さなくていい）
-      }
+    // ① トランザクションでキュー登録 or ペア確定
+    await queueRef.transaction(current => {
+        if (current === null) {
+        // キューが空 → 自分が待機
+        return {
+            uid: myUid,
+            peerID: myPeerID,
+            ts: firebase.database.ServerValue.TIMESTAMP
+        };
+        }
+        if (current.uid !== myUid) {
+            // 待機者がいた → 対戦相手を取得
+            opponent = current;
+            opponentUid = current.uid;
+            return null; // キューを空にする
+        }
+        return; // 稀に自分が既にキューにいた場合
     });
-    return;
-  }
 
-  // ③ 相手が即見つかった場合 → 通話役割分担を決める
-  handShake(opponent);
+    // ② 自分が待機者だった場合
+    if (!opponent) {
+        // 誰かが自分を拾ってキューを空にしてくれるのを待つ
+        queueRef.on('value', snap => {
+        if (!snap.exists()) {
+            queueRef.off();
+            // 誰かがマッチングしてくれた → 待受に入る
+            btn.disabled = false;
+            btn.textContent = "対戦"; // ボタン復帰（ただし何も押さなくていい）
+        }
+        });
+        return;
+    }
+
+    // ③ 相手が即見つかった場合 → 通話役割分担を決める
+    handShake(opponent);
 }
 
 /* ==============================================================
@@ -2501,4 +2461,36 @@ function handShake(opponent) {
     btn.disabled = false;
     btn.textContent = "対戦";
   }
+}
+
+async function updateRating(winnerUid, loserUid) {
+    const ratingRef = database.ref("players");
+
+    // 現在のレーティング取得
+    const [winnerSnap, loserSnap] = await Promise.all([
+        ratingRef.child(winnerUid).once("value"),
+        ratingRef.child(loserUid ).once("value")
+    ]);
+
+    const winnerRating = winnerSnap.child("rating").val() || 100;
+    const loserRating  = loserSnap .child("rating").val() || 100;
+
+    // ---- Elo計算 ----
+    const K = 32;  // 更新係数
+
+    // 期待勝率を計算
+    const expectedWin  = 1 / (1 + Math.pow(10, (loserRating - winnerRating) / 400));
+    const expectedLose = 1 - expectedWin; // = 1 - expectedWin
+
+    // 新しいレート計算
+    const newWinnerRating = Math.round(winnerRating + K * (1 - expectedWin));
+    const newLoserRating  = Math.round(loserRating + K * (0 - expectedLose));
+
+    // Firebaseに保存
+    const updates = {};
+    updates[`${winnerUid}/Rate`] = newWinnerRating;
+    updates[`${loserUid}/Rate`]  = newLoserRating;
+    await ratingRef.update(updates);
+
+    console.log(`レート更新完了: 勝者(${newWinnerRating}), 敗者(${newLoserRating})`);
 }
