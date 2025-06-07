@@ -1975,7 +1975,7 @@ function resetGame() {
     
     document.getElementById("generate_button").style.display = "inline";
     if (GameType=="P2P") {
-        if (MineTurn=="p2") {
+        if (MineTurn=="p1") {
             turn = Math.random() <= 0.5 ? "p1" : "p2";
             console.log(`random turn :: ${turn}`)
             changeTurn(turn);
