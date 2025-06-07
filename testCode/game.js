@@ -2193,9 +2193,7 @@ function connectToPeer() {
 }
 //データを受け取った時の処理
 /* connection を必ず受け取る形に変更 */
-function setupConnection(connection) {
-    conn = connection;                     // 念のため代入
-
+function setupConnection() {
     /*--- DataConnection が open したら共通初期化 ---*/
     conn.on('open', () => {
         GameType = "P2P";
@@ -2497,7 +2495,7 @@ function handShake(opponent, iAmCaller) {
             // 相手を p2 に指定
             conn.send({ type: "role", value: "p2" });
 
-            setupConnection(conn);      // ★ caller も必ず渡す
+            setupConnection();      // ★ caller も必ず渡す
             changeTurn(turn);           // 先手番 UI 開放
         });
 
