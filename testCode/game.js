@@ -1116,6 +1116,9 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     button.style.display = "inline";
     showDown();
 
+    const user = firebase.auth().currentUser;
+    if (IsRankMatch) {updateRating(user.uid, opponentUid);}
+
     if (!winner) {
         console.log("次のゲーム");
         numTurn += 1;
@@ -1131,6 +1134,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         console.log("ゲーム終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
+            IsRankMatch = false;
             returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
@@ -2385,6 +2389,7 @@ async function getOpponentPeerID(myUserName) {
  * 3. caller だけ peer.connect()、callee は待受
  */
 let opponentUid;
+let IsRankMatch = false;
 async function RankMatch() {
     const btn = document.getElementById("RankMatchButton");
     btn.disabled = true;
@@ -2434,9 +2439,6 @@ async function RankMatch() {
     handShake(opponent);
 }
 
-/* ==============================================================
- * handShake() - 呼び出し役と待受役を分担
- * ============================================================== */
 function handShake(opponent) {
   const myUid = firebase.auth().currentUser.uid;
   const iAmCaller = myUid > opponent.uid;  // UID大小で先攻決定
@@ -2461,8 +2463,10 @@ function handShake(opponent) {
     btn.disabled = false;
     btn.textContent = "対戦";
   }
+  IsRankMatch = true;
 }
 
+// opponentUid
 async function updateRating(winnerUid, loserUid) {
     const ratingRef = database.ref("players");
 
