@@ -2052,9 +2052,9 @@ let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送
 let peer; let conn;
 async function finish_done_select(p1_make_material,p2_make_material_arg,who,isRon=false) {
     dora = await get_dora();
-    //console.log(`ドラ: ${dora}`);
-    //console.log(p1_make_material)
-    //console.log(p2_make_material)
+    console.log(`ドラ: ${dora}`);
+    console.log(p1_make_material);
+    console.log(p2_make_material);
     
     let thisGame_p2_point = p2_make_material_arg.c;
     let thisGame_p1_point = p1_make_material.c;
