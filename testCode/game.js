@@ -47,17 +47,14 @@ auth.onAuthStateChanged(async (user) => {
     const snapshot   = await playerRef.once('value');
     let name;
 
-    if (snapshot.exists()) {
-        // ── existing player ───────────────────────────────
-        name = snapshot.child('Name').val(); // could be null
-    } else {
-        // ── first-time player ─────────────────────────────
-        name = getRandomName();  // fallback
+    if (!snapshot.exists()) {                 // まだノードが無い
         await playerRef.set({
             IsSearched : false,
             PeerID     : '',
-            Name       : name
-        }); // set new data
+            Name       : getRandomName()
+        });
+    } else if (!snapshot.child('Name').val()) { // Name だけ欠けている
+        await playerRef.update({ Name: getRandomName() });
     }
 
     // Final safeguard: if somehow name is still undefined, randomize it
