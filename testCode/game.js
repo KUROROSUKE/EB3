@@ -2371,9 +2371,11 @@ async function getOpponentPeerID(myUserName) {
   }
 }
 
-function RankMatch() {
+async function RankMatch() {
     const user = firebase.auth().currentUser;
-    const opponentPeerID = getOpponentPeerID(user.Name);
+    const playerRef  = database.ref(`players/${user.uid}`);
+    await playerRef.update({IsSearched: true})
+    const opponentPeerID = await getOpponentPeerID(user.Name);
     conn = peer.connect(opponentPeerID);
     setupConnection();
 }
