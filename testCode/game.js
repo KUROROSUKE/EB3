@@ -2246,6 +2246,7 @@ function setupConnection() {
         /* shareVariables（初期手札送り返し）*/
         if (data.type === "shareVariables") {
             p1_hand = p2_hand;
+            GameType = "P2P";
             document.getElementById("PeerModal").style.display = "none";
             startGame();
             return;
@@ -2331,7 +2332,8 @@ function shareVariable() {
     if (conn && conn.open) {
         if (MineTurn === "p1") {
             //console.log("📤 ホスト (p1) として変数送信！");
-            console.log(turn)
+            console.log(turn);
+            GameType = "P2P";
             conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, turn: turn, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
         } else {
             //console.log("📤 ゲスト (p2) として変数送信！");
