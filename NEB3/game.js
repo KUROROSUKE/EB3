@@ -2567,12 +2567,13 @@ function handShake(opponent, iAmCaller) {
     }
 }
 async function updateRating(winnerUid, loserUid) {
+    console.log(loserUid);
     const ratingRef = database.ref("players");
 
     // 現在のレーティング取得
     const [winnerSnap, loserSnap] = await Promise.all([
         ratingRef.child(winnerUid).once("value"),
-        ratingRef.child(loserUid ).once("value")
+        ratingRef.child(loserUid).once("value")
     ]);
 
     const winnerRating = winnerSnap.child("rating").val() || 100;
