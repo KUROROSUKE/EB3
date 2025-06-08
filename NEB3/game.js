@@ -2063,7 +2063,7 @@ function returnToStartScreen() {
     document.getElementById("gameRuleButton").style.display = "block";
     document.getElementById("predictResultContainer").style.display = "none";
     document.getElementById("centerLine").style.display = "none";
-    document.getElementById("bottomNav").style.display = "block";
+    document.getElementById("bottomNav").style.display = "inline";
 }
 //
 function startGame() {
