@@ -2063,6 +2063,7 @@ function returnToStartScreen() {
     document.getElementById("centerLine").style.display = "none";
     document.getElementById("bottomNav").style.display = "flex";
     document.getElementById("nextButton").textContent = "次のゲーム";
+    opponentUid = null;
 }
 //
 function startGame() {
@@ -2548,7 +2549,8 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";
 
-        conn = peer.connect(opponent.peerID, { reliable: true });
+        opponentUid = opponent.peerID
+        conn = peer.connect(opponentUid, { reliable: true });
 
         conn.on('open', () => {
             // 相手を p2 に指定
