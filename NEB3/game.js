@@ -2022,14 +2022,15 @@ function resetGame() {
 
     document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
     document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
-    document.getElementById("p2_explain").innerHTML = "　";
-    document.getElementById("predictResult").innerHTML = "　";
+    document.getElementById("p2_explain").innerHTML = " ";
+    document.getElementById("predictResult").innerHTML = " ";
     const ExplainArea = document.getElementById("p1_explain")
-    ExplainArea.innerHTML = "　";
+    ExplainArea.innerHTML = " ";
     ExplainArea.style.color = "black";
     ExplainArea.style.fontSize = "16px";
 
     document.getElementById("done_button").style.display = "none";
+    document.getElementById("nextButton").textContent = "次のゲーム";
     document.getElementById("nextButton").style.display = "none";
     deck = [...elements, ...elements];
     deck = shuffle(deck);
