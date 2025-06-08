@@ -1176,8 +1176,6 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
             const user = firebase.auth().currentUser;
-            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
-            IsRankMatch = false;
             p1_point = 0;
             p2_point = 0;
             numTurn = 1;
@@ -2196,10 +2194,15 @@ async function winnerAndChangeButton() {
             p1_point = 0;
             p2_point = 0;
             numTurn = 0;
+            const user = firebase.auth().currentUser;
+            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
+            IsRankMatch = false;
+
             resetGame();
             returnToStartScreen();
             button.style.display = "none";
             
+            //先にラウンド終了ボタンを押したら切断判定される
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
             conn.close();
@@ -2360,6 +2363,7 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
+        console.log(document.getElementById("nextButton").textContent);
         if (document.getElementById("nextButton").textContent != "ラウンド終了") {
             alert("ゲーム終了");
             returnToStartScreen();
