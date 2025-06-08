@@ -215,6 +215,9 @@ async function changeName() {
 }
 function fetchRankingRealtime() {
     const playersRef = database.ref('players/');
+    const user = firebase.auth().currentUser;
+    let rate = user.Rate;
+    document.getElementById("my-rate").innerHTML = `現在のレート： ${rate}`;
 
     playersRef.on('value', (snapshot) => {
         if (snapshot.exists()) {
