@@ -976,8 +976,8 @@ document.getElementById("generate_button").addEventListener("click", async funct
         if (GameType=="CPU") {
             done("p2");
         } else {
-            await p2_make();
             shareAction(action="generate",otherData=MineTurn);
+            await p2_make();
         }
     };
 })
@@ -2256,7 +2256,7 @@ function setupConnection() {
         if (data.type === "role") {
             MineTurn = data.value;   // "p2"
             turn     = "p1";       // ゲームは常に p1 から開始
-            changeTurn(turn);        // UI を開放
+            //changeTurn(turn);        // UI を開放
             return;                  // これだけは即 return
         }
 
