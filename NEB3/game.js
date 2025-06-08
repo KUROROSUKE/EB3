@@ -2519,6 +2519,7 @@ async function RankMatch() {
             // 自分が後から押した人 → caller (= p1)
             opponent   = first;
             iAmCaller  = true;
+            opponentUid = first.uid;
 
             // キューを掃除（両エントリ削除）
             await queueRef.child(firstKey ).remove();
@@ -2527,6 +2528,7 @@ async function RankMatch() {
             // 自分が先に押した人 → callee (= p2)
             opponent   = second;
             iAmCaller  = false;
+            opponentUid = second.uid;
             // 待機側はキュー削除を caller にまかせる
         } else {
             // 自分は3人目以降。何もしない
@@ -2577,8 +2579,8 @@ async function updateRating(winnerUid, loserUid) {
         ratingRef.child(loserUid).once("value")
     ]);
 
-    const winnerRating = winnerSnap.child("rating").val() || 100;
-    const loserRating  = loserSnap .child("rating").val() || 100;
+    const winnerRating = winnerSnap.child("Rate").val() || 100;
+    const loserRating  = loserSnap .child("Rate").val() || 100;
 
     // ---- Elo計算 ----
     const K = 32;  // 更新係数
