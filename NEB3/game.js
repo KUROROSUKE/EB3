@@ -2360,8 +2360,10 @@ function setupConnection() {
 
     /*--- 切断 ---*/
     conn.on('close', () => {
-        alert("ゲーム終了");
-        returnToStartScreen();
+        if (document.getElementById("nextButton").textContent != "ラウンド終了") {
+            alert("ゲーム終了");
+            returnToStartScreen();
+        }
     });
 }
 function shareVariable() {
