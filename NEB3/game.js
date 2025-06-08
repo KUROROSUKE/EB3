@@ -1178,11 +1178,11 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
             const user = firebase.auth().currentUser;
             if (IsRankMatch) {updateRating(user.uid, opponentUid);}
             IsRankMatch = false;
-            returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
             numTurn = 1;
             resetGame();
+            returnToStartScreen();
             button.style.display = "none";
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
@@ -1880,9 +1880,9 @@ document.addEventListener('DOMContentLoaded', async function () {
     peerID = await generatePeerID();
     peer = new Peer(peerID);
     peer.on('open', id => {
-        console.log(id)
+        console.log(id);
         document.getElementById('my-id').innerText = `自分のPeerID：${id}`;
-        document.getElementById("PeerModal").style.display = "none"
+        document.getElementById("PeerModal").style.display = "none";
     });
     peer.on('connection', connection => {
         conn = connection;
@@ -2000,6 +2000,7 @@ document.getElementById("startButton").addEventListener("click", function() {
 });
 // reset game state
 function resetGame() {
+    document.getElementById("bottomNav").style.display = "none";
     p1_hand = [];
     p2_hand = [];
     dropped_cards_p1 = [];
@@ -2062,6 +2063,7 @@ function returnToStartScreen() {
     document.getElementById("gameRuleButton").style.display = "block";
     document.getElementById("predictResultContainer").style.display = "none";
     document.getElementById("centerLine").style.display = "none";
+    document.getElementById("bottomNav").style.display = "block";
 }
 //
 function startGame() {
@@ -2189,11 +2191,11 @@ async function winnerAndChangeButton() {
         console.log("ラウンド終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
-            returnToStartScreen();
             p1_point = 0;
             p2_point = 0;
             numTurn = 0;
             resetGame();
+            returnToStartScreen();
             button.style.display = "none";
             
             const newButton = button.cloneNode(true);
