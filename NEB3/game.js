@@ -2030,7 +2030,6 @@ function resetGame() {
     ExplainArea.style.fontSize = "16px";
 
     document.getElementById("done_button").style.display = "none";
-    document.getElementById("nextButton").textContent = "次のゲーム";
     document.getElementById("nextButton").style.display = "none";
     deck = [...elements, ...elements];
     deck = shuffle(deck);
@@ -2065,6 +2064,7 @@ function returnToStartScreen() {
     document.getElementById("predictResultContainer").style.display = "none";
     document.getElementById("centerLine").style.display = "none";
     document.getElementById("bottomNav").style.display = "flex";
+    document.getElementById("nextButton").textContent = "次のゲーム";
 }
 //
 function startGame() {
@@ -2074,6 +2074,7 @@ function startGame() {
     document.getElementById("dropped_area_p2").style.display = "block";
     document.getElementById("p2_area").style.display = "block";
     document.getElementById("gameRuleButton").style.display = "none";
+    document.getElementById("nextButton").textContent = "次のゲーム";
     // GameType = "P2P";
     // turn = Math.random() <= 0.5 ? "p1" : "p2";
     resetGame();
