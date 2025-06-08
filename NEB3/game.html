@@ -74,19 +74,67 @@
         bottom: 0;
         left: 0;
         width: 100%;
-        height: 50px;
+        height: 60px;
         background-color: #f0f0f0;
         display: flex;
         justify-content: space-around;
         align-items: center;
         border-top: 1px solid #ccc;
-        z-index: 100;">
-        <img src="../images/game_icon.webp" id="game_icon" alt="gameTab" onclick="switchTab('game')" style="height: 100%;">
-        <img src="../images/setting_icon.webp" id="setting_icon" alt="settingTab" onclick="switchTab('settings')" style="height: 100%;">
-        <img src="../images/dict_icon.webp" id="dict_icon" alt="DictionaryTab" onclick="switchTab('dictionary')" style="height: 100%;">
-        <img src="../images/trophy_icon.webp" id="ranking_icon" alt="RankingTab" onclick="switchTab('ranking');" style="height: 100%;">
-        <img src="../images/user_icon.webp" id="user_icon" alt="UserSettingTab" onclick="switchTab('user')" style="height: 100%;">
+        z-index: 100;
+        box-shadow: 0 -1px 5px rgba(0,0,0,0.1);">
+
+        <!-- ゲーム -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <img src="../images/game_icon.webp" alt="gameTab" style="height: 60%;">
+            <button onclick="switchTab('game')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
+
+        <!-- 仕切り線 -->
+        <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
+
+        <!-- 設定 -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <img src="../images/setting_icon.webp" alt="settingTab" style="height: 60%;">
+            <button onclick="switchTab('settings')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
+
+        <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
+
+        <!-- 辞書 -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <img src="../images/dict_icon.webp" alt="DictionaryTab" style="height: 60%;">
+            <button onclick="switchTab('dictionary')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
+
+        <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
+
+        <!-- ランキング -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
+            <img src="../images/trophy_icon.webp" alt="RankingTab" style="height: 60%;">
+            <button onclick="switchTab('ranking')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
+
+        <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
+
+        <!-- ユーザ -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;" id="user_icon">
+            <img src="../images/user_icon.webp" alt="UserSettingTab" style="height: 60%;">
+            <button onclick="switchTab('user')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
+
     </div>
+
+
 
     <!-- ゲーム画面 -->
     <div id="gameScreen">
