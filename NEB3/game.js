@@ -2266,7 +2266,6 @@ function setupConnection() {
         if (data.type === "variables") {
             p1_hand   = data.p1_hand;
             deck      = data.deck;
-            turn      = data.turn;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
 
@@ -2277,7 +2276,6 @@ function setupConnection() {
             })();
             // -----------------------------------------------------------------
 
-            MineTurn  = (data.PartnerTurn === "p1") ? "p2" : "p1";
             return;
         }
 
