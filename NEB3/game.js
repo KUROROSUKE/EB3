@@ -45,11 +45,10 @@ auth.onAuthStateChanged(async (authUser) => {
 
     const playerRef = database.ref(`players/${authUser.uid}`);
     const snapshot  = await playerRef.once('value');
-    let name = snapshot.child('Name').val();   // まず DB に入っている名前を読む
-    let rate = snapshot.child('Rate').val();   // まず DB に入っている名前を読む
+    let name = snapshot.child('Name').val();
+    let rate = snapshot.child('Rate').val();
 
     if (!snapshot.exists()) {
-        // 新規ユーザ：ランダム名を作って丸ごと set
         name = getRandomName();
         await playerRef.set({
             IsSearched : false,
@@ -57,20 +56,53 @@ auth.onAuthStateChanged(async (authUser) => {
             Name       : name,
             Rate       : 100
         });
+        rate = 100;  // 新規ユーザーならrateも初期値にする
     } else if (!name) {
-        // 既存だが Name が null / 空文字
         name = getRandomName();
         await playerRef.update({ Name: name, IsSearched: false });
     } else if (!snapshot.child('IsSearched').exists()) {
-        // Name はあるが IsSearched が無い場合だけ補完
         await playerRef.update({ IsSearched: false });
     }
 
-    // 画面に反映
+    // 最初の画面反映
     document.getElementById('UserNameTag').textContent = `現在の名前： ${name}`;
     document.getElementById('my-rate').textContent = `現在のレート： ${rate}`;
     document.getElementById('rankmatchModal').style.display = 'block';
+
+    // ★ここから追加部分★
+
+    // 自分のレートのリアルタイム更新監視
+    playerRef.on('value', (snapshot) => {
+        const userData = snapshot.val();
+        const currentRate = userData ? userData.Rate : 0;
+        document.getElementById('my-rate').textContent = `現在のレート： ${currentRate}`;
+    });
+
+    // 全体のランキングのリアルタイム更新監視
+    const playersRef = database.ref('players/');
+    playersRef.on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+
+            const playersArray = Object.entries(data).map(([userId, playerData]) => ({
+                userId,
+                name: playerData.Name || "名無し",
+                rate: playerData.Rate || 0
+            }));
+
+            playersArray.sort((a, b) => b.rate - a.rate);
+            const top10 = playersArray.slice(0, 10);
+
+            showRanking(top10);
+        } else {
+            console.log("プレイヤーデータが存在しません");
+        }
+    }, (error) => {
+        console.error("データ取得エラー:", error);
+    });
+
 });
+
 
 
 
@@ -215,30 +247,16 @@ async function changeName() {
 }
 function fetchRankingRealtime() {
     const playersRef = database.ref('players/');
-    const user = firebase.auth().currentUser;
-    const userRef = database.ref('players/' + user.uid);
-    
-    userRef.on('value', (snapshot) => {
-        const userData = snapshot.val();
-        let rate = userData ? userData.Rate : 0;
-        document.getElementById("my-rate").innerHTML = `現在のレート： ${rate}`;
-    });
-
-
     playersRef.on('value', (snapshot) => {
-        
         if (snapshot.exists()) {
             const data = snapshot.val();
-
             const playersArray = Object.entries(data).map(([userId, playerData]) => ({
                 userId,
                 name: playerData.Name,
                 rate: playerData.Rate
             }));
-
             playersArray.sort((a, b) => b.rate - a.rate);
             const top10 = playersArray.slice(0, 10);
-
             showRanking(top10);
         } else {
             console.log("プレイヤーデータが存在しません");
