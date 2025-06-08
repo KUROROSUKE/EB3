@@ -18,6 +18,8 @@
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-auth-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-database-compat.js"></script>
+    <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <link rel="preload" as="image" href="../images/start_screen_mobile.webp" media="(max-width: 730px)">
     <link rel="preload" as="image" href="../images/start_screen_desktop.webp" media="(min-width: 731px)">
     <style>
@@ -257,9 +259,55 @@
         <div id="modelModals"></div>
     </div>
     <!--- 辞書画面 -->
-    <div id="dictionaryScreen" style="display:none;">
-        <h2>分子辞書</h2>
-        <!-- ここに3DMol.js入れていく -->
+    <div id="dictionaryScreen" style="
+        display:none;
+        padding: 20px;
+        overflow-y: auto;
+        height: calc(100vh - 60px);  /* 画面高さからBottomNav高さを引く */
+        box-sizing: border-box;">
+        <div style="text-align: center;"><h2>分子辞書</h2><p>現在読み込まれている物質が表示されます</p></div>
+        
+        <div id="moleculeGrid" style="
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+            gap: 10px;">
+        </div>
+
+        <!-- 分子詳細モーダル -->
+        <div id="moleculeDetailModal" style="
+            display:none;
+            position: fixed;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            background: rgba(255,255,255,0.95);
+            z-index: 1000;
+            overflow-y: auto;
+            padding: 20px;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;">
+
+            <button onclick="closeMoleculeDetail()" style="
+                position: absolute;
+                top: 10px; right: 10px;
+                padding: 10px 20px;">閉じる</button>
+
+            <h2 id="detailName"></h2>
+            <p id="detailFormula"></p>
+            <p id="detailPoint"></p>
+            <p id="detailAdvantage"></p>
+
+            <h3>説明（Markdown可）</h3>
+            <textarea id="detailDescription" style="width:100%; height:150px;"></textarea>
+            <button onclick="renderMarkdown()">プレビュー</button>
+            <div id="markdownPreview" style="border:1px solid #ccc; padding:10px; margin-top:10px;"></div>
+
+            <!-- 一番最後に完全に独立して配置 -->
+            <div style="width: 100%; height: 40%; border: 1px solid #333; margin-top: 20px;"><div id="viewer3D" style="width:100%; height:100%;position: relative;"></div></div>
+
+        </div>
+
+
     </div>
     <!--- ランキング画面 -->
     <div id="rankingScreen" style="display:none;">
@@ -273,7 +321,7 @@
             </tr>
             </thead>
             <tbody>
-            <!-- データをここに追加 -->
+            <!-- データをJSでここに追加 -->
             </tbody>
         </table>
     </div>
@@ -313,6 +361,9 @@
             screens.forEach(screen => {
                 document.getElementById(screen).style.display = (screen === tab + 'Screen') ? 'block' : 'none';
             });
+            if (tab === 'dictionary') {
+                populateDictionary();
+            }
         }
     </script>
 
