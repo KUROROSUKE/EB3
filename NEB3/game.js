@@ -2291,7 +2291,7 @@ function setupConnection() {
         /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            if (turn != MineTurn) {
+            if (data.value != MineTurn) {
                 document.getElementById("generate_button").style.display = "none";
             } else if (search_materials(arrayToObj(p2_hand))) {
                 document.getElementById("generate_button").style.display = "inline";
