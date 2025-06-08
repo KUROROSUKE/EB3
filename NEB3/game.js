@@ -214,14 +214,19 @@ async function changeName() {
     });
 }
 function fetchRankingRealtime() {
+    const playersRef = database.ref('players/');
+    const user = firebase.auth().currentUser;
     const userRef = database.ref('players/' + user.uid);
-    userRef.once('value').then((snapshot) => {
+    
+    userRef.on('value', (snapshot) => {
         const userData = snapshot.val();
         let rate = userData ? userData.Rate : 0;
         document.getElementById("my-rate").innerHTML = `現在のレート： ${rate}`;
     });
 
+
     playersRef.on('value', (snapshot) => {
+        
         if (snapshot.exists()) {
             const data = snapshot.val();
 
