@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>外部Molファイル読み込み</title>
+  <script src="https://3dmol.org/build/3Dmol-min.js"></script>
+  <style>
+    #viewer {
+      width: 500px;
+      height: 500px;
+      position: relative;
+    }
+  </style>
+</head>
+<body>
+  <h1>外部Molファイルを表示</h1>
+  <div id="viewer"></div>
+
+  <script>
+    // 例: サーバー上の mol ファイルのURL
+    const molUrl = "https://kurorosuke.github.io/H2O.mol";
+
+    fetch(molUrl)
+      .then(response => response.text())
+      .then(moldata => {
+        let viewer = $3Dmol.createViewer("viewer", {backgroundColor: "white"});
+        viewer.addModel(moldata, "mol");
+        viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
+        viewer.zoomTo();
+        viewer.render();
+      })
+      .catch(error => console.error("読み込みエラー:", error));
+  </script>
+</body>
+</html>
