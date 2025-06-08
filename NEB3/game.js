@@ -2202,7 +2202,7 @@ async function winnerAndChangeButton() {
             p2_point = 0;
             numTurn = 0;
             const user = firebase.auth().currentUser;
-            if (IsRankMatch) {updateRating(user.uid, opponentUid);}
+            if (IsRankMatch && MineTurn=="p2") {updateRating(user.uid, opponentUid);}
             IsRankMatch = false;
 
             resetGame();
