@@ -2549,7 +2549,8 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";
 
-        opponentUid = opponent.peerID
+        opponentUid = opponent.peerID;
+        console.log(opponentUid);
         conn = peer.connect(opponentUid, { reliable: true });
 
         conn.on('open', () => {
