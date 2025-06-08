@@ -2607,3 +2607,43 @@ async function updateRating(winnerUid, loserUid) {
 
     console.log(`レート更新完了: 勝者(${newWinnerRating}), 敗者(${newLoserRating})`);
 }
+
+
+function normalizeFormula(text) {
+    const subscriptMap = {
+        '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
+        '₅': '5', '₆': '6', '₇': '7', '₈': '8', '₉': '9'
+    };
+    const superscriptMap = {
+        '⁰': '0', '¹': '1', '²': '2', '³': '3', '⁴': '4',
+        '⁵': '5', '⁶': '6', '⁷': '7', '⁸': '8', '⁹': '9',
+        '⁺': '+', '⁻': '-'
+    };
+    // 文字ごとに置換
+    let result = '';
+    for (let char of text) {
+        if (subscriptMap[char]) {
+            result += subscriptMap[char];
+        } else if (superscriptMap[char]) {
+            result += superscriptMap[char];
+        } else {
+            result += char;
+        }
+    }
+    return result;
+}
+async function view3DMaterial(formula) {
+    let molURL = await normalizeFormula(formula);
+    molUrl = `https://kurorosuke.github.io/MolData/${molURL}.mol`;
+
+    fetch(molUrl)
+      .then(response => response.text())
+      .then(moldata => {
+        let viewer = $3Dmol.createViewer("viewer", {backgroundColor: "white"});
+        viewer.addModel(moldata, "mol");
+        viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
+        viewer.zoomTo();
+        viewer.render();
+      })
+      .catch(error => console.error("読み込みエラー:", error));
+}
