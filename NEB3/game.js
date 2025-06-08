@@ -2639,11 +2639,73 @@ async function view3DMaterial(formula) {
     fetch(molUrl)
       .then(response => response.text())
       .then(moldata => {
-        let viewer = $3Dmol.createViewer("viewer", {backgroundColor: "white"});
-        viewer.addModel(moldata, "mol");
-        viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
-        viewer.zoomTo();
-        viewer.render();
-      })
+            console.log(moldata);
+            let viewer = $3Dmol.createViewer("viewer3D", {backgroundColor: "white"});
+            viewer.addModel(moldata, "mol");
+            viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
+            viewer.zoomTo();
+            viewer.render();
+        })
       .catch(error => console.error("読み込みエラー:", error));
+}
+
+// 分子辞書の描画
+function populateDictionary() {
+    const grid = document.getElementById('moleculeGrid');
+    grid.innerHTML = '';
+
+    materials.forEach((material, index) => {
+        const item = document.createElement('div');
+        item.style.border = '1px solid #ccc';
+        item.style.borderRadius = '10px';
+        item.style.padding = '10px';
+        item.style.textAlign = 'center';
+        item.style.backgroundColor = '#fff';
+        item.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+
+        const name = document.createElement('h4');
+        name.textContent = material.a;
+        name.style.margin = '5px 0';
+
+        const formula = document.createElement('p');
+        formula.textContent = material.b;
+
+        const point = document.createElement('p');
+        point.textContent = `ポイント: ${material.c}`;
+
+        item.appendChild(name);
+        item.appendChild(formula);
+        item.appendChild(point);
+
+        // クリック時に詳細表示
+        item.addEventListener('click', () => {
+            openMoleculeDetail(material, index);
+        });
+
+        grid.appendChild(item);
+    });
+}
+
+function openMoleculeDetail(material, index) {
+    document.getElementById('detailName').textContent = material.a;
+    document.getElementById('detailFormula').textContent = `組成式: ${material.b}`;
+    document.getElementById('detailPoint').textContent = `ポイント: ${material.c}`;
+    document.getElementById('detailAdvantage').textContent = `有利な物質: ${material.e.join(', ')}`;
+
+    view3DMaterial(material.b);
+
+    document.getElementById('detailDescription').value = "";
+    document.getElementById('markdownPreview').innerHTML = "";
+
+    document.getElementById('moleculeDetailModal').style.display = 'block';
+}
+
+function closeMoleculeDetail() {
+    document.getElementById('moleculeDetailModal').style.display = 'none';
+}
+
+function renderMarkdown() {
+    const text = document.getElementById('detailDescription').value;
+    const html = marked.parse(text);
+    document.getElementById('markdownPreview').innerHTML = html;
 }
