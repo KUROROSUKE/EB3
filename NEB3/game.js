@@ -82,6 +82,8 @@ auth.onAuthStateChanged(async (authUser) => {
 // firebase authentication functions
 function logout() {
     auth.signOut();
+    document.getElementById("UserDataModal").style.display = "none";
+    document.getElementById("LoginModal").style.display = "block";
 }
 document.getElementById("user_icon").addEventListener("click", function () {
     //closeRules();
@@ -209,6 +211,45 @@ async function changeName() {
     .catch(error => {
         console.log("❌ エラー：" + error.message);
         document.getElementById("UserDataMessage").innerHTML = "エラー";
+    });
+}
+function fetchRankingRealtime() {
+    const playersRef = database.ref('players/');
+
+    playersRef.on('value', (snapshot) => {
+        if (snapshot.exists()) {
+            const data = snapshot.val();
+
+            const playersArray = Object.entries(data).map(([userId, playerData]) => ({
+                userId,
+                name: playerData.Name,
+                rate: playerData.Rate
+            }));
+
+            playersArray.sort((a, b) => b.rate - a.rate);
+            const top10 = playersArray.slice(0, 10);
+
+            showRanking(top10);
+        } else {
+            console.log("プレイヤーデータが存在しません");
+        }
+    }, (error) => {
+        console.error("データ取得エラー:", error);
+    });
+}
+
+function showRanking(ranking) {
+    const tableBody = document.querySelector("#rankingTable tbody");
+    tableBody.innerHTML = '';
+
+    ranking.forEach((player, index) => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${index + 1}</td>
+          <td>${player.name}</td>
+          <td>${player.rate}</td>
+        `;
+        tableBody.appendChild(row);
     });
 }
 
@@ -1851,6 +1892,7 @@ document.addEventListener('DOMContentLoaded', async function () {
         }
         setupConnection();
     });
+    fetchRankingRealtime();
     document.getElementById("loading").style.display = "none";
     document.getElementById("startButton").style.display = "inline";
     document.getElementById("OnlineStartButton").style.display = "inline";

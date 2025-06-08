@@ -84,7 +84,7 @@
         <img src="../images/game_icon.webp" id="game_icon" alt="gameTab" onclick="switchTab('game')" style="height: 100%;">
         <img src="../images/setting_icon.webp" id="setting_icon" alt="settingTab" onclick="switchTab('settings')" style="height: 100%;">
         <img src="../images/dict_icon.webp" id="dict_icon" alt="DictionaryTab" onclick="switchTab('dictionary')" style="height: 100%;">
-        <img src="../images/trophy_icon.webp" id="ranking_icon" alt="RankingTab" onclick="switchTab('ranking')" style="height: 100%;">
+        <img src="../images/trophy_icon.webp" id="ranking_icon" alt="RankingTab" onclick="switchTab('ranking');" style="height: 100%;">
         <img src="../images/user_icon.webp" id="user_icon" alt="UserSettingTab" onclick="switchTab('user')" style="height: 100%;">
     </div>
 
@@ -216,6 +216,18 @@
     <!--- ランキング画面 -->
     <div id="rankingScreen" style="display:none;">
         <h2>ランキング</h2>
+        <table id="rankingTable">
+            <thead>
+            <tr>
+                <th>順位</th>
+                <th>ユーザー名</th>
+                <th>レート</th>
+            </tr>
+            </thead>
+            <tbody>
+            <!-- データをここに追加 -->
+            </tbody>
+        </table>
     </div>
     <!--- ユーザ設定画面 -->
     <div id="userScreen" style="display:none;">
