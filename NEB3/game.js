@@ -69,7 +69,6 @@ auth.onAuthStateChanged(async (authUser) => {
     document.getElementById('my-rate').textContent = `現在のレート： ${rate}`;
     document.getElementById('rankmatchModal').style.display = 'block';
 
-    // ★ここから追加部分★
 
     // 自分のレートのリアルタイム更新監視
     playerRef.on('value', (snapshot) => {
@@ -100,15 +99,7 @@ auth.onAuthStateChanged(async (authUser) => {
     }, (error) => {
         console.error("データ取得エラー:", error);
     });
-
 });
-
-
-
-
-
-
-
 
 // ======== login Modal =======
 // firebase authentication functions
@@ -127,20 +118,7 @@ document.getElementById("user_icon").addEventListener("click", function () {
     let modal;
     if (user) {modal = document.getElementById("UserDataModal");} else {modal = document.getElementById("LoginModal");}
     modal.style.display = "inline";
-    // 少し遅れてからイベントを追加（例：100ms後）
-    setTimeout(() => {
-        window.addEventListener("click", handleOutsideClick_LoginModal);
-        window.addEventListener("touchstart", handleOutsideClick_LoginModal);
-    }, 100);
 });
-// 閉じる関数
-function closeLoginModal() {
-    document.getElementById("LoginModal").style.display = "none";
-    document.getElementById("UserDataModal").style.display = "none";
-    // リスナーを削除しておく
-    window.removeEventListener("click", handleOutsideClick_LoginModal);
-    window.removeEventListener("touchstart", handleOutsideClick_LoginModal);
-}
 // モーダル外をクリック / タップした場合に閉じる
 function handleOutsideClick_LoginModal(event) {
     const user = firebase.auth().currentUser;
