@@ -944,6 +944,7 @@ async function view_p2_hand() {
 async function p2_make() {
     // ボタンの表示を変更
     time = "make";
+    if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
 
     document.getElementById("generate_button").style.display = "none";
     document.getElementById("hintContainer").style.display = "none";
@@ -962,7 +963,6 @@ async function p2_make() {
             p2_make_material = await search(arrayToObj(p2_selected_card));
             resolve(p2_make_material);
             console.log("this is p2_make()");
-            if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
         });
     });
 }
