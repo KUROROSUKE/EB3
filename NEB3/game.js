@@ -2063,9 +2063,9 @@ function returnToStartScreen() {
     document.getElementById("centerLine").style.display = "none";
     document.getElementById("bottomNav").style.display = "flex";
     document.getElementById("nextButton").textContent = "次のゲーム";
-    opponentUid = null;
+    //opponentUid = null;
 }
-//
+
 function startGame() {
     document.getElementById("startScreen").style.display = "none";
     document.getElementById("p1_area").style.display = "block";
