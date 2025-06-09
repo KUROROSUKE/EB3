@@ -2632,22 +2632,35 @@ function normalizeFormula(text) {
     }
     return result;
 }
+/* ========= view3DMaterial (修正版) ========= */
 async function view3DMaterial(formula) {
-    let molURL = await normalizeFormula(formula);
-    molUrl = `https://kurorosuke.github.io/MolData/${molURL}.mol`;
 
-    fetch(molUrl)
-      .then(response => response.text())
-      .then(moldata => {
-            console.log(moldata);
-            let viewer = $3Dmol.createViewer("viewer3D", {backgroundColor: "white"});
-            viewer.addModel(moldata, "sdf");
-            viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
-            viewer.zoomTo();
-            viewer.render();
-        })
-      .catch(error => console.error("読み込みエラー:", error));
+    /*--- SDF の URL を組み立て ---*/
+    const molURL = await normalizeFormula(formula);
+    const molUrl = `https://kurorosuke.github.io/MolData/${molURL}.mol`;
+
+    try {
+        const response = await fetch(molUrl);
+        const moldata  = await response.text();
+
+        /*--- 3Dmol Viewer を生成して描画 ---*/
+        const viewer = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+        viewer.addModel(moldata, 'sdf');
+        viewer.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+        viewer.zoomTo();
+        viewer.render();
+        viewer.resize();                      // ← iOS Safari では必須
+
+        /*--- 回転／ウィンドウリサイズにも追従 ---*/
+        const resizeHandler = () => viewer.resize();
+        window.addEventListener('orientationchange', resizeHandler);
+        window.addEventListener('resize',            resizeHandler);
+
+    } catch (error) {
+        console.error('読み込みエラー:', error);
+    }
 }
+
 
 // 分子辞書の描画
 function populateDictionary() {
@@ -2686,20 +2699,33 @@ function populateDictionary() {
     });
 }
 
+/* ========= openMoleculeDetail (修正版) ========= */
 function openMoleculeDetail(material, index) {
-    document.getElementById('detailName').textContent = material.a;
-    document.getElementById('detailFormula').textContent = `組成式: ${material.b}`;
-    document.getElementById('detailPoint').textContent = `ポイント: ${material.c}`;
+
+    /*--- 詳細テキストを先に反映 ---*/
+    document.getElementById('detailName'     ).textContent = material.a;
+    document.getElementById('detailFormula'  ).textContent = `組成式: ${material.b}`;
+    document.getElementById('detailPoint'    ).textContent = `ポイント: ${material.c}`;
     document.getElementById('detailAdvantage').textContent = `有利な物質: ${material.e.join(', ')}`;
 
-    view3DMaterial(material.b);
+    /*--- モーダルを表示して高さを確定 ---*/
+    const modal = document.getElementById('moleculeDetailModal');
+    modal.style.display = 'block';      // ← ここを先に行う！
 
-    document.getElementById('detailDescription').value = "";
-    document.getElementById('markdownPreview').innerHTML = "";
-    document.getElementById('viewer3D').innerHTML = "";
+    /*--- 旧 viewer を掃除 ---*/
+    const viewerDiv = document.getElementById('viewer3D');
+    viewerDiv.innerHTML = '';           // キャンバスごとクリア
 
-    document.getElementById('moleculeDetailModal').style.display = 'block';
+    /*--- レイアウト確定後に 3Dmol を生成（iOS Safari 対策）---*/
+    setTimeout(() => {
+        view3DMaterial(material.b);     // async 関数だが await 不要
+    }, 0);
+
+    /*--- Markdown エリアをリセット ---*/
+    document.getElementById('detailDescription').value   = '';
+    document.getElementById('markdownPreview' ).innerHTML = '';
 }
+
 
 function closeMoleculeDetail() {
     document.getElementById('moleculeDetailModal').style.display = 'none';
