@@ -2683,6 +2683,7 @@ async function view3DMaterial(formula) {
 
 
 let markdownToggleCleanup = null;
+let material4explain;
 // 分子辞書の描画
 function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
@@ -2721,6 +2722,7 @@ function populateDictionary() {
 }
 
 function openMoleculeDetail(material) {
+    material4explain =  material; // initMarkdownToggleで重複して動作させない
     /* --- テキスト ---- */
     detailName.textContent      = material.a;
     detailFormula.textContent   = `組成式: ${material.b}`;
@@ -2734,7 +2736,7 @@ function openMoleculeDetail(material) {
     requestAnimationFrame(() => view3DMaterial(material.b));
 
     detailDescription.value = '';
-    initMarkdownToggle(material);
+    initMarkdownToggle();
 }
 
 
@@ -2754,7 +2756,7 @@ async function loadDescription(id) {                    // 読込（なければ
 }
 
 /* ===== Markdown 編集／閲覧トグル ===== */
-function initMarkdownToggle(material) {
+function initMarkdownToggle() {
     const textarea = document.getElementById('detailDescription');
     const preview  = document.getElementById('markdownPreview');
     const editBtn  = document.getElementById('editButton');
@@ -2769,7 +2771,7 @@ function initMarkdownToggle(material) {
         editBtn.style.display  = 'inline-block';
 
         /* 決定時に自動保存 */
-        await saveDescription(material.b, textarea.value);
+        await saveDescription(material4explain.b, textarea.value);
     }
 
     function showEditor() {
@@ -2784,7 +2786,7 @@ function initMarkdownToggle(material) {
     editBtn.addEventListener('click', showEditor);  // 編集→エディター
 
     /* 3) 起動時に保存有無でモードを決定 -------------- */
-    loadDescription(material.b).then(saved => {
+    loadDescription(material4explain.b).then(saved => {
         if (saved) {
             textarea.value = saved;
             showPreview();          // ← 保存データあり：プレビューから開始
