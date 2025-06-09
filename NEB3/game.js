@@ -2613,7 +2613,7 @@ async function updateRating(winnerUid, loserUid) {
 
 
 
-let viewer3D = null;   // 使い回す Viewer
+let viewer3DInstance = null;
 function normalizeFormula(text) {
     const subscriptMap = {
         '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
@@ -2638,29 +2638,28 @@ function normalizeFormula(text) {
     return result;
 }
 /* ========= view3DMaterial (修正版) ========= */
+/* ========= ② view3DMaterial ========= */
 async function view3DMaterial(formula) {
+    /* ① molデータ取得 */
+    const url = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
+    const molTxt = await (await fetch(url)).text();
 
-    /* ① Viewer を取得（無ければ作る） */
-    if (!viewer3D) {
-        viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+    /* ② Viewer を取得（なければ新規） */
+    if (!viewer3DInstance) {
+        viewer3DInstance = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
     } else {
-        viewer3D.removeAllModels();   // 既存モデルをクリア
-        viewer3D.removeAllShapes();
+        viewer3DInstance.removeAllModels();
+        viewer3DInstance.removeAllShapes();
     }
 
-    /* ② mol ファイルをロード */
-    const molURL  = await normalizeFormula(formula);
-    const molText = await (await fetch(
-        `https://kurorosuke.github.io/MolData/${molURL}.mol`
-    )).text();
-
     /* ③ 描画 */
-    viewer3D.addModel(molText, 'sdf');
-    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
-    viewer3D.zoomTo();
-    viewer3D.render();
-    viewer3D.resize();               // iPad では必須
+    viewer3DInstance.addModel(molTxt, 'sdf');
+    viewer3DInstance.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+    viewer3DInstance.zoomTo();
+    viewer3DInstance.render();
+    viewer3DInstance.resize();                 // iPad Safari では必須
 }
+
 
 
 // 分子辞書の描画
@@ -2700,25 +2699,32 @@ function populateDictionary() {
     });
 }
 
-/* ========= openMoleculeDetail (修正版) ========= */
-function openMoleculeDetail(material, index) {
+function openMoleculeDetail(material) {
+    /* -- 文字情報 -- */
+    detailName.textContent      = material.a;
+    detailFormula.textContent   = `組成式: ${material.b}`;
+    detailPoint.textContent     = `ポイント: ${material.c}`;
+    detailAdvantage.textContent = `有利な物質: ${material.e.join(', ')}`;
 
-    /* --- 詳細テキスト --- */
-    document.getElementById('detailName'     ).textContent = material.a;
-    document.getElementById('detailFormula'  ).textContent = `組成式: ${material.b}`;
-    document.getElementById('detailPoint'    ).textContent = `ポイント: ${material.c}`;
-    document.getElementById('detailAdvantage').textContent = `有利な物質: ${material.e.join(', ')}`;
+    /* -- モーダル表示でサイズを確定 -- */
+    moleculeDetailModal.style.display = 'block';
 
-    /* --- モーダルを表示してサイズ確定 --- */
-    document.getElementById('moleculeDetailModal').style.display = 'block';
+    /* -- Viewer コンテナをクリア（要素ごと削らない!!） -- */
+    const viewerDiv = document.getElementById('viewer3D');
+    if (viewerDiv) viewerDiv.innerHTML = '';
 
-    /* --- iOS は “次フレーム” で描画させると安定 --- */
+    /* -- キャッシュも毎回捨てる -- */
+    if ($3Dmol.viewers.viewer3D) delete $3Dmol.viewers.viewer3D;
+    viewer3DInstance = null;
+
+    /* -- 次フレームで描画（iOS のレイアウト確定待ち） -- */
     requestAnimationFrame(() => view3DMaterial(material.b));
 
-    /* --- Markdown 部分は元コードのまま --- */
-    document.getElementById('detailDescription').value = '';
-    document.getElementById('markdownPreview' ).innerHTML = '';
+    /* -- Markdown リセット -- */
+    detailDescription.value = '';
+    markdownPreview.innerHTML = '';
 }
+
 
 
 function closeMoleculeDetail() {
