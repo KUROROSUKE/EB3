@@ -2638,36 +2638,51 @@ function normalizeFormula(text) {
     }
     return result;
 }
-
-async function view3DMaterial(formula){
-  /* ① モーダルを表示して高さ確定 */
-  moleculeDetailModal.style.display = 'block';
-  await new Promise(r=>requestAnimationFrame(r));
-
-  /* ② Viewer を取得（無ければ新規） */
-  if(!viewer3D){
-      viewer3D = $3Dmol.createViewer('viewer3D',{backgroundColor:'white'});
-      window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
-      window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
-  }else{
-      viewer3D.removeAllModels();          // ★ コンテキストはそのまま
-      viewer3D.removeAllShapes();
+function safeCreateViewer() {
+  const box = document.getElementById('viewer3D');
+  if (box.offsetWidth === 0 || box.offsetHeight === 0) {
+      // レイアウトが確定するまで待つ
+      return new Promise(r => requestAnimationFrame(() => r(safeCreateViewer())));
   }
+  // サイズがあるので安全
+  return Promise.resolve(
+      $3Dmol.createViewer(box, { backgroundColor: 'white' })
+  );
+}
 
-  /* ③ モデルを読み込み */
-  const url   = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
-  const mol   = await (await fetch(url,{cache:'no-store'})).text();
+async function view3DMaterial(formula) {
 
-  /* ④ 描画 (resize→render の順!) */
-  viewer3D.addModel(mol,'sdf');
-  viewer3D.setStyle({}, {stick:{}, sphere:{scale:0.3}});
-  viewer3D.zoomTo();
-  viewer3D.resize();
-  viewer3D.render();
+    /* 1) Viewer を用意（なければ新規） */
+    if (!viewer3D) {
+        viewer3D = await safeCreateViewer();
+        //viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+        /* 画面回転・リサイズ時にも常にサイズを合わせる */
+        window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
+        window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
+    } else {
+        viewer3D.removeAllModels();
+        viewer3D.removeAllShapes();
+    }
+    console.log('viewer exists', !!$3Dmol.viewers.viewer3D);
+    console.log('canvas alive',  document.getElementById('viewer3D')?.offsetWidth,
+                                document.getElementById('viewer3D')?.offsetHeight);
+    console.log('contexts', Object.keys($3Dmol.viewers).length,
+                $3Dmol.viewers.viewer3D?.gl()?.isContextLost?.());
+
+    /* 2) mol ファイルを取得 */
+    const url     = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
+    const molText = await (await fetch(url)).text();
+
+    /* 3) 描画 */
+    viewer3D.addModel(molText, 'sdf');
+    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+    viewer3D.zoomTo();
+    viewer3D.render();   // その後で描画
 }
 
 
 
+let markdownToggleCleanup = null;
 // 分子辞書の描画
 function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
@@ -2718,19 +2733,64 @@ function openMoleculeDetail(material) {
     /* --- 次のフレームでモデルを読み込む (高さが確定してから) --- */
     requestAnimationFrame(() => view3DMaterial(material.b));
 
-    /* --- Markdown はそのまま --- */
     detailDescription.value = '';
-    markdownPreview.innerHTML = '';
+    initMarkdownToggle(material);
 }
-
 
 
 function closeMoleculeDetail() {
     document.getElementById('moleculeDetailModal').style.display = 'none';
 }
 
-function renderMarkdown() {
-    const text = document.getElementById('detailDescription').value;
-    const html = marked.parse(text);
-    document.getElementById('markdownPreview').innerHTML = html;
+/* ===== Markdown 説明：保存／読込 ===== */
+const makeDescKey = id => `description_${id}`;          // 衝突防止プレフィックス
+
+async function saveDescription(id, text) {              // 保存
+  await setItem(makeDescKey(id), text);
+}
+
+async function loadDescription(id) {                    // 読込（なければ null）
+  return await getItem(makeDescKey(id));
+}
+
+/* ===== Markdown 編集／閲覧トグル ===== */
+function initMarkdownToggle(material) {
+    const textarea = document.getElementById('detailDescription');
+    const preview  = document.getElementById('markdownPreview');
+    const editBtn  = document.getElementById('editButton');
+    const saveBtn  = document.getElementById('saveButton');
+
+    /* 1) 内部関数：表示切替 ------------------------------ */
+    async function showPreview() {
+        preview.innerHTML      = marked.parse(textarea.value);
+        textarea.style.display = 'none';
+        preview.style.display  = 'block';
+        saveBtn.style.display  = 'none';
+        editBtn.style.display  = 'inline-block';
+
+        /* 決定時に自動保存 */
+        await saveDescription(material.b, textarea.value);
+    }
+
+    function showEditor() {
+        textarea.style.display = 'block';
+        preview.style.display  = 'none';
+        saveBtn.style.display  = 'inline-block';
+        editBtn.style.display  = 'none';
+    }
+
+    /* 2) ボタンイベント ------------------------------ */
+    saveBtn.addEventListener('click', showPreview); // 決定→保存＋プレビュー
+    editBtn.addEventListener('click', showEditor);  // 編集→エディター
+
+    /* 3) 起動時に保存有無でモードを決定 -------------- */
+    loadDescription(material.b).then(saved => {
+        if (saved) {
+            textarea.value = saved;
+            showPreview();          // ← 保存データあり：プレビューから開始
+        } else {
+            textarea.value = '';
+            showEditor();           // ← なし：エディターから開始
+        }
+    });
 }
