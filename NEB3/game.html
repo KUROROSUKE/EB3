@@ -288,7 +288,7 @@
             flex-direction: column;
             text-align:center;">
 
-            <button onclick="closeMoleculeDetail()" style="
+            <button onclick="closeMoleculeDetail()" id="moleculeCloseBtn" style="
                 position: absolute;
                 top: 10px; right: 10px;
                 padding: 10px 20px;">閉じる</button>
@@ -299,16 +299,24 @@
             <p id="detailAdvantage"></p>
 
             <h3>説明（Markdown可）</h3>
-            <textarea id="detailDescription" style="width:100%; height:150px;"></textarea>
-            <button onclick="renderMarkdown()">プレビュー</button>
-            <div id="markdownPreview" style="border:1px solid #ccc; padding:10px; margin-top:10px;"></div>
-
+            <!-- ▼ まとめて扱いやすいようラッパーを追加 -->
+            <div id="descriptionContainer">
+                <!-- 入力 -->
+                <textarea id="detailDescription" style="width:100%; height:150px;"></textarea>
+                <!-- 出力（最初は隠す） -->
+                <div id="markdownPreview" style="display:none; border:1px solid #ccc; padding:10px; margin-top:10px;"></div>
+                <!-- ボタン -->
+                <div style="margin-top:10px">
+                    <button id="editButton" style="display:none;">編集</button>
+                    <button id="saveButton">決定</button>
+                </div>
+            </div>
             <!-- 一番最後に完全に独立して配置 -->
+            <h3>3D構造</h3>
             <div style="width:350px; height:350px; border:1px solid #333; margin: 20px auto;">
                 <div id="viewer3D" style="width:350px; height:350px; position:relative;"></div>
             </div>
         </div>
-
 
     </div>
     <!--- ランキング画面 -->
