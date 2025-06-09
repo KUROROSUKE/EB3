@@ -1897,7 +1897,6 @@ document.addEventListener('DOMContentLoaded', async function () {
         setupConnection();
     });
     fetchRankingRealtime();
-    switchTab('dictionary');
     document.getElementById("loading").style.display = "none";
     document.getElementById("startButton").style.display = "inline";
     document.getElementById("OnlineStartButton").style.display = "inline";
