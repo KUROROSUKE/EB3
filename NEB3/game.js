@@ -2661,9 +2661,6 @@ async function view3DMaterial(formula) {
     viewer3D.addModel(molText, 'sdf');
     viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
     viewer3D.zoomTo();
-
-    /* !!! ここが重要 !!!  */
-    viewer3D.resize();   // 先にキャンバスを正しいサイズに
     viewer3D.render();   // その後で描画
 }
 
