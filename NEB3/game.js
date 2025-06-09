@@ -2641,7 +2641,7 @@ async function view3DMaterial(formula) {
       .then(moldata => {
             console.log(moldata);
             let viewer = $3Dmol.createViewer("viewer3D", {backgroundColor: "white"});
-            viewer.addModel(moldata, "mol");
+            viewer.addModel(moldata, "sdf");
             viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
             viewer.zoomTo();
             viewer.render();
