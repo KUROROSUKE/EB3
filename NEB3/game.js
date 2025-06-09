@@ -2613,7 +2613,7 @@ async function updateRating(winnerUid, loserUid) {
 
 
 
-let viewer3DInstance = null;
+let viewer3D = null;
 function normalizeFormula(text) {
     const subscriptMap = {
         '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
@@ -2637,27 +2637,33 @@ function normalizeFormula(text) {
     }
     return result;
 }
-/* ========= view3DMaterial (修正版) ========= */
-/* ========= ② view3DMaterial ========= */
-async function view3DMaterial(formula) {
-    /* ① molデータ取得 */
-    const url = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
-    const molTxt = await (await fetch(url)).text();
 
-    /* ② Viewer を取得（なければ新規） */
-    if (!viewer3DInstance) {
-        viewer3DInstance = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+async function view3DMaterial(formula) {
+
+    /* 1) Viewer を用意（なければ新規） */
+    if (!viewer3D) {
+        viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+
+        /* 画面回転・リサイズ時にも常にサイズを合わせる */
+        window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
+        window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
     } else {
-        viewer3DInstance.removeAllModels();
-        viewer3DInstance.removeAllShapes();
+        viewer3D.removeAllModels();
+        viewer3D.removeAllShapes();
     }
 
-    /* ③ 描画 */
-    viewer3DInstance.addModel(molTxt, 'sdf');
-    viewer3DInstance.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
-    viewer3DInstance.zoomTo();
-    viewer3DInstance.render();
-    viewer3DInstance.resize();                 // iPad Safari では必須
+    /* 2) mol ファイルを取得 */
+    const url     = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
+    const molText = await (await fetch(url)).text();
+
+    /* 3) 描画 */
+    viewer3D.addModel(molText, 'sdf');
+    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+    viewer3D.zoomTo();
+
+    /* !!! ここが重要 !!!  */
+    viewer3D.resize();   // 先にキャンバスを正しいサイズに
+    viewer3D.render();   // その後で描画
 }
 
 
@@ -2700,27 +2706,19 @@ function populateDictionary() {
 }
 
 function openMoleculeDetail(material) {
-    /* -- 文字情報 -- */
+    /* --- テキスト ---- */
     detailName.textContent      = material.a;
     detailFormula.textContent   = `組成式: ${material.b}`;
     detailPoint.textContent     = `ポイント: ${material.c}`;
     detailAdvantage.textContent = `有利な物質: ${material.e.join(', ')}`;
 
-    /* -- モーダル表示でサイズを確定 -- */
+    /* --- モーダルを表示して高さを確定 --- */
     moleculeDetailModal.style.display = 'block';
 
-    /* -- Viewer コンテナをクリア（要素ごと削らない!!） -- */
-    const viewerDiv = document.getElementById('viewer3D');
-    if (viewerDiv) viewerDiv.innerHTML = '';
-
-    /* -- キャッシュも毎回捨てる -- */
-    if ($3Dmol.viewers.viewer3D) delete $3Dmol.viewers.viewer3D;
-    viewer3DInstance = null;
-
-    /* -- 次フレームで描画（iOS のレイアウト確定待ち） -- */
+    /* --- 次のフレームでモデルを読み込む (高さが確定してから) --- */
     requestAnimationFrame(() => view3DMaterial(material.b));
 
-    /* -- Markdown リセット -- */
+    /* --- Markdown はそのまま --- */
     detailDescription.value = '';
     markdownPreview.innerHTML = '';
 }
