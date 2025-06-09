@@ -2641,13 +2641,17 @@ async function view3DMaterial(formula) {
       .then(moldata => {
             console.log(moldata);
             let viewer = $3Dmol.createViewer("viewer3D", {backgroundColor: "white"});
-            viewer.addModel(moldata, "mol");
+            let model = viewer.addModel(moldata, "mol");
+            
+            model.setQuality(1);  // ここで品質を低く設定（1が最低品質、負荷軽減）
+
             viewer.setStyle({}, {stick: {}, sphere: {scale: 0.3}});
             viewer.zoomTo();
             viewer.render();
         })
       .catch(error => console.error("読み込みエラー:", error));
 }
+
 
 // 分子辞書の描画
 function populateDictionary() {
@@ -2697,7 +2701,7 @@ function openMoleculeDetail(material, index) {
     document.getElementById('detailDescription').value = "";
     document.getElementById('markdownPreview').innerHTML = "";
 
-    document.getElementById('moleculeDetailModal').style.display = 'block';
+    document.getElementById('moleculeDetailModal').style.display = 'flex';
 }
 
 function closeMoleculeDetail() {
