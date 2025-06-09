@@ -2652,6 +2652,11 @@ async function view3DMaterial(formula) {
         viewer3D.removeAllModels();
         viewer3D.removeAllShapes();
     }
+    console.log('viewer exists', !!$3Dmol.viewers.viewer3D);
+    console.log('canvas alive',  document.getElementById('viewer3D')?.offsetWidth,
+                                document.getElementById('viewer3D')?.offsetHeight);
+    console.log('contexts', Object.keys($3Dmol.viewers).length,
+                $3Dmol.viewers.viewer3D?.gl()?.isContextLost?.());
 
     /* 2) mol ファイルを取得 */
     const url     = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
@@ -2714,11 +2719,6 @@ function openMoleculeDetail(material) {
     moleculeDetailModal.style.display = 'block';
 
     /* --- 次のフレームでモデルを読み込む (高さが確定してから) --- */
-    console.log('viewer exists', !!$3Dmol.viewers.viewer3D);
-    console.log('canvas alive',  document.getElementById('viewer3D')?.offsetWidth,
-                                document.getElementById('viewer3D')?.offsetHeight);
-    console.log('contexts', Object.keys($3Dmol.viewers).length,
-                $3Dmol.viewers.viewer3D?.gl()?.isContextLost?.());
     requestAnimationFrame(() => view3DMaterial(material.b));
 
     /* --- Markdown はそのまま --- */
