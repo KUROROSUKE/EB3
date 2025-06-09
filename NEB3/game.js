@@ -2696,6 +2696,7 @@ function openMoleculeDetail(material, index) {
 
     document.getElementById('detailDescription').value = "";
     document.getElementById('markdownPreview').innerHTML = "";
+    document.getElementById('viewer3D').innerHTML = "";
 
     document.getElementById('moleculeDetailModal').style.display = 'block';
 }
