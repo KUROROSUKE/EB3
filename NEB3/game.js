@@ -2639,34 +2639,31 @@ function normalizeFormula(text) {
     return result;
 }
 
-async function view3DMaterial(formula) {
+async function view3DMaterial(formula){
+  /* ① モーダルを表示して高さ確定 */
+  moleculeDetailModal.style.display = 'block';
+  await new Promise(r=>requestAnimationFrame(r));
 
-    /* 1) Viewer を用意（なければ新規） */
-    if (!viewer3D) {
-        viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+  /* ② Viewer を取得（無ければ新規） */
+  if(!viewer3D){
+      viewer3D = $3Dmol.createViewer('viewer3D',{backgroundColor:'white'});
+      window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
+      window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
+  }else{
+      viewer3D.removeAllModels();          // ★ コンテキストはそのまま
+      viewer3D.removeAllShapes();
+  }
 
-        /* 画面回転・リサイズ時にも常にサイズを合わせる */
-        window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
-        window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
-    } else {
-        viewer3D.removeAllModels();
-        viewer3D.removeAllShapes();
-    }
-    console.log('viewer exists', !!$3Dmol.viewers.viewer3D);
-    console.log('canvas alive',  document.getElementById('viewer3D')?.offsetWidth,
-                                document.getElementById('viewer3D')?.offsetHeight);
-    console.log('contexts', Object.keys($3Dmol.viewers).length,
-                $3Dmol.viewers.viewer3D?.gl()?.isContextLost?.());
+  /* ③ モデルを読み込み */
+  const url   = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
+  const mol   = await (await fetch(url,{cache:'no-store'})).text();
 
-    /* 2) mol ファイルを取得 */
-    const url     = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
-    const molText = await (await fetch(url)).text();
-
-    /* 3) 描画 */
-    viewer3D.addModel(molText, 'sdf');
-    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
-    viewer3D.zoomTo();
-    viewer3D.render();   // その後で描画
+  /* ④ 描画 (resize→render の順!) */
+  viewer3D.addModel(mol,'sdf');
+  viewer3D.setStyle({}, {stick:{}, sphere:{scale:0.3}});
+  viewer3D.zoomTo();
+  viewer3D.resize();
+  viewer3D.render();
 }
 
 
