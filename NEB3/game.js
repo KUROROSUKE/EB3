@@ -2609,6 +2609,11 @@ async function updateRating(winnerUid, loserUid) {
 }
 
 
+
+
+
+
+let viewer3D = null;   // 使い回す Viewer
 function normalizeFormula(text) {
     const subscriptMap = {
         '₀': '0', '₁': '1', '₂': '2', '₃': '3', '₄': '4',
@@ -2635,30 +2640,26 @@ function normalizeFormula(text) {
 /* ========= view3DMaterial (修正版) ========= */
 async function view3DMaterial(formula) {
 
-    /*--- SDF の URL を組み立て ---*/
-    const molURL = await normalizeFormula(formula);
-    const molUrl = `https://kurorosuke.github.io/MolData/${molURL}.mol`;
-
-    try {
-        const response = await fetch(molUrl);
-        const moldata  = await response.text();
-
-        /*--- 3Dmol Viewer を生成して描画 ---*/
-        const viewer = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
-        viewer.addModel(moldata, 'sdf');
-        viewer.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
-        viewer.zoomTo();
-        viewer.render();
-        viewer.resize();                      // ← iOS Safari では必須
-
-        /*--- 回転／ウィンドウリサイズにも追従 ---*/
-        const resizeHandler = () => viewer.resize();
-        window.addEventListener('orientationchange', resizeHandler);
-        window.addEventListener('resize',            resizeHandler);
-
-    } catch (error) {
-        console.error('読み込みエラー:', error);
+    /* ① Viewer を取得（無ければ作る） */
+    if (!viewer3D) {
+        viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+    } else {
+        viewer3D.removeAllModels();   // 既存モデルをクリア
+        viewer3D.removeAllShapes();
     }
+
+    /* ② mol ファイルをロード */
+    const molURL  = await normalizeFormula(formula);
+    const molText = await (await fetch(
+        `https://kurorosuke.github.io/MolData/${molURL}.mol`
+    )).text();
+
+    /* ③ 描画 */
+    viewer3D.addModel(molText, 'sdf');
+    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+    viewer3D.zoomTo();
+    viewer3D.render();
+    viewer3D.resize();               // iPad では必須
 }
 
 
@@ -2702,27 +2703,20 @@ function populateDictionary() {
 /* ========= openMoleculeDetail (修正版) ========= */
 function openMoleculeDetail(material, index) {
 
-    /*--- 詳細テキストを先に反映 ---*/
+    /* --- 詳細テキスト --- */
     document.getElementById('detailName'     ).textContent = material.a;
     document.getElementById('detailFormula'  ).textContent = `組成式: ${material.b}`;
     document.getElementById('detailPoint'    ).textContent = `ポイント: ${material.c}`;
     document.getElementById('detailAdvantage').textContent = `有利な物質: ${material.e.join(', ')}`;
 
-    /*--- モーダルを表示して高さを確定 ---*/
-    const modal = document.getElementById('moleculeDetailModal');
-    modal.style.display = 'block';      // ← ここを先に行う！
+    /* --- モーダルを表示してサイズ確定 --- */
+    document.getElementById('moleculeDetailModal').style.display = 'block';
 
-    /*--- 旧 viewer を掃除 ---*/
-    const viewerDiv = document.getElementById('viewer3D');
-    viewerDiv.innerHTML = '';           // キャンバスごとクリア
+    /* --- iOS は “次フレーム” で描画させると安定 --- */
+    requestAnimationFrame(() => view3DMaterial(material.b));
 
-    /*--- レイアウト確定後に 3Dmol を生成（iOS Safari 対策）---*/
-    setTimeout(() => {
-        view3DMaterial(material.b);     // async 関数だが await 不要
-    }, 0);
-
-    /*--- Markdown エリアをリセット ---*/
-    document.getElementById('detailDescription').value   = '';
+    /* --- Markdown 部分は元コードのまま --- */
+    document.getElementById('detailDescription').value = '';
     document.getElementById('markdownPreview' ).innerHTML = '';
 }
 
