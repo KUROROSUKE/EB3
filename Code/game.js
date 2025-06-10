@@ -2719,7 +2719,7 @@ function populateDictionary() {
         grid.appendChild(item);
     });
 
-    grid.innerHTML = dict_materials;
+    //grid.innerHTML = dict_materials;
 }
 
 function openMoleculeDetail(material) {
