@@ -2951,7 +2951,7 @@ async function checkQuest(madeMaterial, madePoint) {
             saveQuestsStatus(); // クエストの状態を保存
         }
     } else if (current.type === 'point') {
-        if (!current.completed && madePoint >= current.target) { // pointタイプの場合はmadePointを比較
+        if (!current.completed && madePoint >= current.targetPoint) { // pointタイプの場合はmadePointを比較
             console.log(`✅ クエスト達成！: ${current.name}`);
             current.completed = true; // 達成済みにする
             currentQuestIndex++; // 次のクエストへ
