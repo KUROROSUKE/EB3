@@ -2679,8 +2679,6 @@ async function view3DMaterial(formula) {
     viewer3D.render();   // その後で描画
 }
 
-
-
 let markdownToggleCleanup = null;
 let material4explain;
 // 分子辞書の描画
@@ -2688,14 +2686,16 @@ function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
     grid.innerHTML = '';
 
-    materials.forEach((material, index) => {
+    const dict_materials = materials.sort((a,b) => {a.point - b.point});
+    
+    dict_materials.forEach((material, index) => {
         const item = document.createElement('div');
         item.style.border = '1px solid #ccc';
         item.style.borderRadius = '10px';
         item.style.padding = '10px';
         item.style.textAlign = 'center';
         item.style.backgroundColor = '#fff';
-        item.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
+        item.style.boxShadow = '2px 2px 5px rgb(0,0,0)';
 
         const name = document.createElement('h4');
         name.textContent = material.a;
