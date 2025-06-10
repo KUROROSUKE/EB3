@@ -2881,10 +2881,6 @@ function changeQuest() {
         } else if (current.type === 'point') {
             currentQuestTarget.textContent = `目標: ${current.targetPoint} ポイント獲得`;
         }
-        // クエスト一覧にも現在のクエストを表示
-        const currentQuestItem = document.createElement('p');
-        currentQuestItem.textContent = `現在のクエスト: <span class="math-inline">\{current\.name\} \(</span>{current.type === 'create' ? current.target + ' を合成' : current.target + ' ポイント'})`;
-        questListDiv.appendChild(currentQuestItem);
 
     } else {
         document.getElementById('questTitle').textContent = '全てのクエストをクリアしました！';
@@ -2892,15 +2888,21 @@ function changeQuest() {
         currentQuestTarget.textContent = '';
     }
 
-    // 達成済みのクエストを表示
+    //クエスト一覧を表示
     quests.forEach((quest, index) => {
-        if (quest.completed) {
+        if (!quest.completed) {
+            const questFrame = document.createElement('div');
             const questItem = document.createElement('p');
-            questItem.textContent = `✅ ${quest.name} (達成済み)`;
-            questListDiv.appendChild(questItem);
+            questItem.textContent = `${quest.name}`;
+            questFrame.style.border = "1px solid black";
+            questFrame.style.textAlign = "left";
+            questFrame.style.padding = "0 0 0 15px";
+            questFrame.appendChild(questItem);
+            questListDiv.appendChild(questFrame);
         }
     });
 }
+
 
 // game.js に追加
 
