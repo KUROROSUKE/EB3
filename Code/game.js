@@ -16,7 +16,7 @@ const elementToNumber = {"H": 1, "He": 2, "Li": 3, "Be": 4, "B": 5, "C": 6, "N":
 const elements = [...Array(6).fill('H'), ...Array(4).fill('O'), ...Array(4).fill('C'),'He', 'Li', 'Be', 'B', 'N', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca','Fe', 'Cu', 'Zn', 'I'];
 const element = ['H','O','C','He', 'Li', 'Be', 'B', 'N', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca','Fe', 'Cu', 'Zn', 'I'];
 let MineTurn = null;
-
+let chemCoin = 0;
 
 
 
@@ -54,7 +54,7 @@ auth.onAuthStateChanged(async (authUser) => {
             IsSearched : false,
             PeerID     : '',
             Name       : name,
-            Rate       : 100
+            Rate       : 100,
         });
         rate = 100;  // 新規ユーザーならrateも初期値にする
     } else if (!name) {
@@ -1139,6 +1139,11 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     document.getElementById("p2_explain").innerHTML = `生成物質：${p2_make_material.a}, 組成式：${p2_make_material.b}`;
     document.getElementById("p1_explain").innerHTML = `生成物質：${p1_make_material[0].a}, 組成式：${p1_make_material[0].b}`;
 
+    // クエスト達成をチェック (CPU戦かつプレイヤーの行動時)
+    if (who === "p2") {
+        await checkQuest(p2_make_material, p2_point);
+    }
+
     //モデルを学習
     if (IsTraining) {
         let generatedMaterialIndex = p2_make_material.f;
@@ -1879,6 +1884,7 @@ document.addEventListener('DOMContentLoaded', async function () {
     await loadModel();
     await init_json();
     await initializeMaterials();
+    await loadQuestsStatus();
     addInputModelDiv();
     addLoadingButton();
     peerID = await generatePeerID();
@@ -2000,6 +2006,8 @@ document.getElementById("startButton").addEventListener("click", function() {
     document.getElementById("centerLine").style.display = "block";
     MineTurn = "p2";
     GameType = "CPU";
+    inGameQuest.style.display = 'block';
+    changeQuest(); // ゲーム開始時にクエスト情報を更新
     resetGame();
 });
 // reset game state
@@ -2080,8 +2088,6 @@ function startGame() {
     document.getElementById("p2_area").style.display = "block";
     document.getElementById("gameRuleButton").style.display = "none";
     document.getElementById("nextButton").textContent = "次のゲーム";
-    // GameType = "P2P";
-    // turn = Math.random() <= 0.5 ? "p1" : "p2";
     resetGame();
 }
 
@@ -2826,10 +2832,145 @@ function filterAndSortMaterials() {
 
 // ── 辞書 UI のイベント ──
 document.getElementById('dictSearch').addEventListener('input', e => {
-  dictSearchQuery = e.target.value;
-  populateDictionary();
+    dictSearchQuery = e.target.value;
+    populateDictionary();
 });
 document.getElementById('dictSort').addEventListener('change', e => {
-  dictSortOption = e.target.value;
-  populateDictionary();
+    dictSortOption = e.target.value;
+    populateDictionary();
 });
+
+
+const quests = [
+    { id: 1, name: "水を合成せよ", type:"create", target: "H₂O", completed: false, award: 50 },
+    { id: 2, name: "25ポイント以上の物質を合成せよ", type:"point", targetPoint: 25, completed: false, award: 50 },
+    { id: 3, name: "アンモニアを合成せよ", type:"create", target: "NH₃", completed: false, award: 100 },
+    { id: 4, name: "シアン化水素を合成せよ", type:"create", target: "HCN", completed: false, award: 100 },
+    { id: 5, name: "酢酸を合成せよ", type:"create", target: "CH₃COOH", completed: false, award: 150 },
+    { id: 6, name: "60ポイント以上の物質を合成せよ", type:"point", targetPoint: 60, completed: false, award: 100 },
+    { id: 7, name: "過酸化水素を合成せよ", type: "create", target: "H₂O₂", completed: false, award: 75 },
+    { id: 8, name: "炭酸を合成せよ", type: "create", target: "H₂CO₃", completed: false, award: 120 },
+    { id: 9, name: "硫酸を合成せよ", type: "create", target: "H₂SO₄", completed: false, award: 180 },
+    { id: 10, name: "硝酸を合成せよ", type: "create", target: "HNO₃", completed: false, award: 160 },
+    { id: 11, name: "リン酸を合成せよ", type: "create", target: "H₃PO₄", completed: false, award: 200 },
+    { id: 12, name: "80ポイント以上の物質を合成せよ", type: "point", targetPoint: 80, completed: false, award: 150 },
+    { id: 13, name: "100ポイント以上の物質を合成せよ", type: "point", targetPoint: 100, completed: false, award: 200 },
+    { id: 14, name: "メタンを合成せよ", type: "create", target: "CH₄", completed: false, award: 80 },
+    { id: 15, name: "エタノールを合成せよ", type: "create", target: "C₂H₅OH", completed: false, award: 170 },
+    { id: 16, name: "ブドウ糖を合成せよ", type: "create", target: "C₆H₁₂O₆", completed: false, award: 250 },
+    { id: 17, name: "塩化ナトリウムを合成せよ", type: "create", target: "NaCl", completed: false, award: 130 },
+    { id: 18, name: "酸化鉄を合成せよ", type: "create", target: "Fe₂O₃", completed: false, award: 220 },
+    { id: 19, name: "120ポイント以上の物質を合成せよ", type: "point", targetPoint: 120, completed: false, award: 250 },
+];
+let currentQuestIndex = 0;
+
+// game.js の changeQuest を書き換える
+
+function changeQuest() {
+    // 全てのクエストをクリアしていたらメッセージを表示
+    const questListDiv = document.getElementById('questList');
+    questListDiv.innerHTML = ''; // リストをクリア
+
+    if (currentQuestIndex < quests.length) {
+        const current = quests[currentQuestIndex];
+        document.getElementById('questTitle').textContent = `クエスト：${current.name}`;
+        currentQuestName.textContent = `クエスト名: ${current.name}`;
+
+        if (current.type === 'create') {
+            currentQuestTarget.textContent = `目標: ${current.target} を合成`;
+        } else if (current.type === 'point') {
+            currentQuestTarget.textContent = `目標: ${current.targetPoint} ポイント獲得`;
+        }
+        // クエスト一覧にも現在のクエストを表示
+        const currentQuestItem = document.createElement('p');
+        currentQuestItem.textContent = `現在のクエスト: <span class="math-inline">\{current\.name\} \(</span>{current.type === 'create' ? current.target + ' を合成' : current.target + ' ポイント'})`;
+        questListDiv.appendChild(currentQuestItem);
+
+    } else {
+        document.getElementById('questTitle').textContent = '全てのクエストをクリアしました！';
+        currentQuestName.textContent = '全てのクエストをクリアしました！';
+        currentQuestTarget.textContent = '';
+    }
+
+    // 達成済みのクエストを表示
+    quests.forEach((quest, index) => {
+        if (quest.completed) {
+            const questItem = document.createElement('p');
+            questItem.textContent = `✅ ${quest.name} (達成済み)`;
+            questListDiv.appendChild(questItem);
+        }
+    });
+}
+
+// game.js に追加
+
+// IndexedDBからクエストの達成状況を読み込む関数
+async function loadQuestsStatus() {
+    const savedQuests = await getItem("questsStatus");
+    chemCoin = await getItem("chemCoin");
+    if (savedQuests && savedQuests.length === quests.length) {
+        // 保存されたデータがあれば、現在のquests配列にcompleted状態を復元
+        quests.forEach((quest, index) => {
+            quest.completed = savedQuests[index].completed;
+        });
+        console.log("クエストの達成状況を読み込みました。");
+    }
+    // 現在のクエストを更新
+    currentQuestIndex = quests.findIndex(q => !q.completed);
+    if (currentQuestIndex === -1) currentQuestIndex = quests.length; // 全てクリア済み
+}
+
+// IndexedDBにクエストの達成状況を保存する関数
+async function saveQuestsStatus() {
+    await setItem("questsStatus", quests);
+    console.log("クエストの達成状況を保存しました。");
+}
+
+// game.js の checkQuest を書き換える
+
+/**
+ * 現在のクエストが達成されたか判定し、達成されていれば報酬処理を行う
+ * @param {object} madeMaterial - プレイヤーが生成した物質のオブジェクト
+ */
+async function checkQuest(madeMaterial, madePoint) {
+    // まだ達成されていないクエストがあるか確認
+    if (currentQuestIndex >= quests.length) {
+        console.log("全てのクエストをクリア済みです。");
+        return; // 全クリ済みなら何もしない
+    }
+
+    const current = quests[currentQuestIndex];
+
+    // 達成判定：生成物質の組成式とクエストのターゲットが一致するか
+    if (current.type === 'create') {
+        if (!current.completed && madeMaterial.b === current.target) {
+            console.log(`✅ クエスト達成！: ${current.name}`);
+            current.completed = true; // 達成済みにする
+            currentQuestIndex++; // 次のクエストへ
+            changeQuest(); // クエスト達成時に表示を更新
+            saveQuestsStatus(); // クエストの状態を保存
+        }
+    } else if (current.type === 'point') {
+        if (!current.completed && madePoint >= current.target) { // pointタイプの場合はmadePointを比較
+            console.log(`✅ クエスト達成！: ${current.name}`);
+            current.completed = true; // 達成済みにする
+            currentQuestIndex++; // 次のクエストへ
+            changeQuest(); // クエスト達成時に表示を更新
+            saveQuestsStatus(); // クエストの状態を保存
+        }
+    }
+    // ★★★ 報酬処理をここに記述 ★★★
+    chemCoin += current.award;
+    await setItem("chemCoin", chemCoin);
+
+    // 達成状況を保存
+    await saveQuestsStatus();
+
+    // UIを更新
+    changeQuest();
+}
+
+function toggleQuestModal() {
+    const inGameContent = document.getElementById("inGameQuestContent");
+    inGameContent.style.display==="block" ? inGameContent.style.display = "none" : inGameContent.style.display = "block";
+}

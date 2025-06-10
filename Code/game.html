@@ -95,7 +95,6 @@
 
         <!-- 仕切り線 -->
         <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
-
         <!-- 設定 -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/setting_icon.webp" alt="settingTab" style="height: 60%;">
@@ -104,8 +103,8 @@
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
 
+        <!-- 仕切り線 -->
         <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
-
         <!-- 辞書 -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/dict_icon.webp" alt="DictionaryTab" style="height: 60%;">
@@ -114,8 +113,8 @@
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
 
+        <!-- 仕切り線 -->
         <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
-
         <!-- ランキング -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/trophy_icon.webp" alt="RankingTab" style="height: 60%;">
@@ -124,8 +123,8 @@
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
 
+        <!-- 仕切り線 -->
         <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
-
         <!-- ユーザ -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;" id="user_icon">
             <img src="../images/user_icon.webp" alt="UserSettingTab" style="height: 60%;">
@@ -134,6 +133,15 @@
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
 
+        <!-- 仕切り線 -->
+        <div style="width: 1px; height: 60%; background-color: #ccc;"></div>
+        <!-- ユーザ -->
+        <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;" id="quest_icon">
+            <img src="../images/quest_icon.webp" alt="QuestTab" style="height: 60%;">
+            <button onclick="switchTab('quest')" style="
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                background: transparent; border: none; cursor: pointer;"></button>
+        </div>
     </div>
 
     <!-- ゲーム画面 -->
@@ -371,6 +379,20 @@
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">「元素ゲーム」問い合わせフォーム</a>
         </div>
     </div>
+    <!--- クエスト画面 -->
+    <div id="questScreen" style="text-align:center; padding:10px; display:none">
+        <h3 id="questTitle">クエスト：水を合成せよ</h3>
+        <div id="questList"></div>
+    </div>
+
+    <div id="inGameQuest" style="display:none;">
+        <button id="toggleQuestButton" onclick="toggleQuestModal()">クエスト表示/非表示</button>
+        <div id="inGameQuestContent" style="display:block">
+            <h4>現在のクエスト</h4>
+            <p id="currentQuestName"></p>
+            <p id="currentQuestTarget"></p>
+        </div>
+    </div>
 
     <div id="overlay"></div>
     </div>
@@ -381,13 +403,27 @@
     </div>
     <script>
         function switchTab(tab) {
-            const screens = ['gameScreen', 'settingsScreen', 'dictionaryScreen', 'rankingScreen', 'userScreen'];
+            const inGameQuest = document.getElementById('inGameQuest');
+            const toggleQuestButton = document.getElementById('toggleQuestButton');
+            const inGameQuestContent = document.getElementById('inGameQuestContent');
+            const currentQuestName = document.getElementById('currentQuestName');
+            const currentQuestTarget = document.getElementById('currentQuestTarget');
+
+            // クエスト表示/非表示ボタンのイベントリスナー
+            toggleQuestButton.addEventListener('click', () => {
+                if (inGameQuestContent.style.display === 'none') {
+                    inGameQuestContent.style.display = 'block';
+                } else {
+                    inGameQuestContent.style.display = 'none';
+                }
+            });
+
+            const screens = ['gameScreen', 'settingsScreen', 'dictionaryScreen', 'rankingScreen', 'userScreen', 'questScreen'];
             screens.forEach(screen => {
                 document.getElementById(screen).style.display = (screen === tab + 'Screen') ? 'block' : 'none';
             });
-            if (tab === 'dictionary') {
-                populateDictionary();
-            }
+            if (tab === 'dictionary') {populateDictionary();}
+            if (tab === 'quest') {changeQuest();}
         }
     </script>
 
