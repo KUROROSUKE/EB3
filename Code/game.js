@@ -2077,7 +2077,7 @@ function returnToStartScreen() {
     document.getElementById("centerLine").style.display = "none";
     document.getElementById("bottomNav").style.display = "flex";
     document.getElementById("nextButton").textContent = "次のゲーム";
-    //opponentUid = null;
+    document.getElementById("inGameQuest").style.display = "none";
 }
 
 function startGame() {
