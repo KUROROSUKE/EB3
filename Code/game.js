@@ -2686,7 +2686,9 @@ function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
     grid.innerHTML = '';
 
-    const dict_materials = materials.sort((a,b) => {a.c - b.c});
+    const dict_materials = materials.sort((a,b) => {
+        return a.c - b.c;
+    });
     
     dict_materials.forEach((material, index) => {
         const item = document.createElement('div');
