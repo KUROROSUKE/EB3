@@ -2679,6 +2679,8 @@ async function view3DMaterial(formula) {
     viewer3D.render();   // その後で描画
 }
 
+
+
 let markdownToggleCleanup = null;
 let material4explain;
 // 分子辞書の描画
@@ -2686,11 +2688,7 @@ function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
     grid.innerHTML = '';
 
-    const dict_materials = materials.sort((a,b) => {
-        return a.c - b.c;
-    });
-    
-    dict_materials.forEach((material, index) => {
+    filterAndSortMaterials().forEach((material, index) => {
         const item = document.createElement('div');
         item.style.border = '1px solid #ccc';
         item.style.borderRadius = '10px';
@@ -2797,3 +2795,41 @@ function initMarkdownToggle() {
         }
     });
 }
+
+
+let dictSearchQuery = '';
+let dictSortOption  = 'nameAsc';
+// ── 検索とソートをまとめて行う関数 ──
+function filterAndSortMaterials() {
+  // 1) 検索
+  const filtered = materials.filter(m => {
+    const q = dictSearchQuery.toLowerCase();
+    return (
+      m.a.toLowerCase().includes(q) ||  // 名前
+      m.b.toLowerCase().includes(q)     // 組成式
+    );
+  });
+
+  // 2) ソート
+  const sorted = filtered.sort((x, y) => {
+    switch (dictSortOption) {
+      case 'nameAsc' :  return  x.a.localeCompare(y.a, 'ja');
+      case 'nameDesc':  return  y.a.localeCompare(x.a, 'ja');
+      case 'pointAsc':  return  x.c - y.c;
+      case 'pointDesc': return  y.c - x.c;
+      default:          return 0;
+    }
+  });
+
+  return sorted;
+}
+
+// ── 辞書 UI のイベント ──
+document.getElementById('dictSearch').addEventListener('input', e => {
+  dictSearchQuery = e.target.value;
+  populateDictionary();
+});
+document.getElementById('dictSort').addEventListener('change', e => {
+  dictSortOption = e.target.value;
+  populateDictionary();
+});

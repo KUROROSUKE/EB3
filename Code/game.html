@@ -266,6 +266,22 @@
         box-sizing: border-box;">
         <div style="text-align: center;"><h2>分子辞書</h2><p>現在読み込まれている物質が表示されます</p></div>
         
+        <!-- ━━ 検索 & ソートコントロール ━━ -->
+        <div id="dictControls"
+            style="display:flex; gap:10px; margin-bottom:10px; align-items:center">
+        <input id="dictSearch"
+                type="text"
+                placeholder="名前・組成式を検索…"
+                style="flex:1; padding:6px 8px; font-size:1em;">
+        <select id="dictSort" style="padding:6px 8px; font-size:1em;">
+            <option value="nameAsc">名前 ▲</option>
+            <option value="nameDesc">名前 ▼</option>
+            <option value="pointDesc">ポイント ▼</option>
+            <option value="pointAsc">ポイント ▲</option>
+        </select>
+        </div>
+
+
         <div id="moleculeGrid" style="
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
