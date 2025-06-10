@@ -2695,7 +2695,7 @@ function populateDictionary() {
         item.style.padding = '10px';
         item.style.textAlign = 'center';
         item.style.backgroundColor = '#fff';
-        item.style.boxShadow = '2px 2px 5px rgb(0,0,0)';
+        item.style.boxShadow = '2px 2px 5px rgba(0,0,0,0.1)';
 
         const name = document.createElement('h4');
         name.textContent = material.a;
@@ -2718,6 +2718,8 @@ function populateDictionary() {
 
         grid.appendChild(item);
     });
+
+    grid.innerHTML = dict_materials;
 }
 
 function openMoleculeDetail(material) {
