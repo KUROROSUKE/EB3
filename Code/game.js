@@ -2686,7 +2686,7 @@ function populateDictionary() {
     const grid = document.getElementById('moleculeGrid');
     grid.innerHTML = '';
 
-    const dict_materials = materials.sort((a,b) => {a.point - b.point});
+    const dict_materials = materials.sort((a,b) => {a.c - b.c});
     
     dict_materials.forEach((material, index) => {
         const item = document.createElement('div');
@@ -2718,8 +2718,6 @@ function populateDictionary() {
 
         grid.appendChild(item);
     });
-
-    //grid.innerHTML = dict_materials;
 }
 
 function openMoleculeDetail(material) {
