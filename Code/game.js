@@ -16,7 +16,7 @@ const elementToNumber = {"H": 1, "He": 2, "Li": 3, "Be": 4, "B": 5, "C": 6, "N":
 const elements = [...Array(6).fill('H'), ...Array(4).fill('O'), ...Array(4).fill('C'),'He', 'Li', 'Be', 'B', 'N', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca','Fe', 'Cu', 'Zn', 'I'];
 const element = ['H','O','C','He', 'Li', 'Be', 'B', 'N', 'F', 'Ne', 'Na', 'Mg', 'Al', 'Si', 'P', 'S', 'Cl', 'Ar', 'K', 'Ca','Fe', 'Cu', 'Zn', 'I'];
 let MineTurn = null;
-let chemCoin = 0;
+let myXP = 0;
 
 
 
@@ -55,6 +55,7 @@ auth.onAuthStateChanged(async (authUser) => {
             PeerID     : '',
             Name       : name,
             Rate       : 100,
+            myXP       : 0
         });
         rate = 100;  // 新規ユーザーならrateも初期値にする
     } else if (!name) {
@@ -2909,7 +2910,7 @@ function changeQuest() {
 // IndexedDBからクエストの達成状況を読み込む関数
 async function loadQuestsStatus() {
     const savedQuests = await getItem("questsStatus");
-    chemCoin = await getItem("chemCoin");
+    myXP = await getItem("myXP");
     if (savedQuests && savedQuests.length === quests.length) {
         // 保存されたデータがあれば、現在のquests配列にcompleted状態を復元
         quests.forEach((quest, index) => {
@@ -2962,8 +2963,8 @@ async function checkQuest(madeMaterial, madePoint) {
         }
     }
     // ★★★ 報酬処理をここに記述 ★★★
-    chemCoin += current.award;
-    await setItem("chemCoin", chemCoin);
+    myXP += current.award;
+    await setItem("myXP", myXP);
 
     // 達成状況を保存
     await saveQuestsStatus();
