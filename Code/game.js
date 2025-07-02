@@ -2041,6 +2041,8 @@ function resetGame() {
             console.log(`random turn :: ${turn}`)
             changeTurn(turn);
         }
+    } else {
+        document.getElementById("generate_button").style.display = "inline";
     }
     p1_finish_select = true;
     p2_finish_select = true;
