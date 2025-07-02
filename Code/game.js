@@ -1201,12 +1201,16 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
 }
 // win check (p1 win => return "p1", p2 win => return "p2". And p1 and p2 don't win => return null)
 async function win_check() {
-    return Math.abs(p1_point - p2_point) >= WIN_POINT ? p1_point>p2_point ? "p1": "p2" : numTurn >= WIN_TURN ? p1_point>p2_point ? "p1": "p2" : null;
+    if (Math.abs(p1_point - p2_point) >= WIN_POINT) {
+        return p1_point>p2_point ? "p1": "p2";
+    } else {
+        if (numTurn >= WIN_TURN) {
+            return p1_point>p2_point ? "p1": "p2"; 
+        } else {
+            return null;
+        }
+    }
 }
-
-
-
-
 
 // useful functions
 function arrayToObj(array) {
@@ -1267,7 +1271,16 @@ async function no_draw_card() {
 }
 // get next card (if no card in deck, then done()) from this function.
 function drawCard() {
-    return deck.length > 0 ? deck.pop() : (time = "make", GameType=="CPU" ? done("no-draw") : no_draw_card());
+    if (deck.length > 0) {
+        return deck.pop()
+    } else {
+        if (time = "make", GameType=="CPU"){
+            done("no-draw")
+        } else {
+            shareAction("generate");
+            no_draw_card();
+        }
+    }
 }
 // count creatable materials for CanCreateMaterial()
 function removeCards(tmpDeck, allCards) {
@@ -2022,7 +2035,6 @@ function resetGame() {
     p2_selected_card = [];
     time = "game";
     
-    document.getElementById("generate_button").style.display = "inline";
     if (GameType=="P2P") {
         if (MineTurn=="p1") {
             turn = Math.random() <= 0.5 ? "p1" : "p2";
@@ -2308,10 +2320,13 @@ function setupConnection() {
         /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            if (data.value != MineTurn) {
-                document.getElementById("generate_button").style.display = "none";
-            } else if (search_materials(arrayToObj(p2_hand))) {
+            console.log("でてきたよ！！！！！！！！");
+            if (turn===MineTurn) {
+                console.log("処理１！！！！！！！！！")
                 document.getElementById("generate_button").style.display = "inline";
+            } else {
+                console.log("処理２！！！！！！！！！")
+                document.getElementById("generate_button").style.display = "none";
             }
             return;
         }
@@ -2390,7 +2405,7 @@ function shareVariable() {
             //console.log("📤 ホスト (p1) として変数送信！");
             console.log(turn);
             GameType = "P2P";
-            conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, turn: turn, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
+            conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
         } else {
             //console.log("📤 ゲスト (p2) として変数送信！");
             conn.send({type: "shareVariables", p1_hand: p2_hand });
@@ -2409,11 +2424,13 @@ function shareAction(action, otherData) {
 function changeTurn(newTurn) {
     //console.log(`🔄 ターン変更: ${newTurn}`);
     if (conn && conn.open) {
+        turn = newTurn;
         conn.send({ type: "turn", value: newTurn });
-        if (turn != MineTurn) {
-            document.getElementById("generate_button").style.display = "none";
-        } else if (search_materials(arrayToObj(p2_hand))) {
+        console.log("おくったよぉ！！！！！");
+        if (turn === MineTurn) {
             document.getElementById("generate_button").style.display = "inline";
+        } else {
+            document.getElementById("generate_button").style.display = "none";
         }
     }
 }
@@ -2902,10 +2919,8 @@ function changeQuest() {
             questListDiv.appendChild(questFrame);
         }
     });
+    questListDiv.style.margin = "0 0 50px 0";
 }
-
-
-// game.js に追加
 
 // IndexedDBからクエストの達成状況を読み込む関数
 async function loadQuestsStatus() {
