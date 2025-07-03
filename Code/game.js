@@ -2889,6 +2889,14 @@ function changeQuest() {
     const questListDiv = document.getElementById('questList');
     questListDiv.innerHTML = ''; // リストをクリア
 
+    const completed   = quests.filter(q => q.completed).length;
+    const total       = quests.length;
+    const percent     = Math.round(completed / total * 100);
+
+    const bar         = document.getElementById('questProgress');
+    bar.style.width   = percent + '%';
+    bar.textContent   = percent + '%';
+
     if (currentQuestIndex < quests.length) {
         const current = quests[currentQuestIndex];
         document.getElementById('questTitle').textContent = `クエスト：${current.name}`;
@@ -2919,7 +2927,7 @@ function changeQuest() {
             questListDiv.appendChild(questFrame);
         }
     });
-    questListDiv.style.margin = "0 0 50px 0";
+    questListDiv.style.margin = "0 0 20px 0";
 }
 
 // IndexedDBからクエストの達成状況を読み込む関数

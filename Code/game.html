@@ -294,10 +294,10 @@
     <!--- 辞書画面 -->
     <div id="dictionaryScreen" style="
         display:none;
-        padding: 20px;
+        padding: 20px 20px 0 20px;
         overflow-y: auto;
         width:100%;
-        height: calc(100vh - 60px);  /* 画面高さからBottomNav高さを引く */
+        height: calc(100vh - 80px);
         box-sizing: border-box;">
         <div style="text-align: center;"><h2>分子辞書</h2><p>現在読み込まれている物質が表示されます</p></div>
         
@@ -369,7 +369,7 @@
 
     </div>
     <!--- ランキング画面 -->
-    <div id="rankingScreen" style="display:none;">
+    <div id="rankingScreen" style="display:none;overflow-y: auto;">
         <h2>ランキング</h2>
         <table id="rankingTable">
             <thead>
@@ -407,8 +407,11 @@
         </div>
     </div>
     <!--- クエスト画面 -->
-    <div id="questScreen" style="text-align:center; padding:10px; display:none">
+    <div id="questScreen" style="text-align:center; padding:10px 10px 0 10px; display:none;height:calc(100vh - 80px);overflow-y: auto;">
         <h3 id="questTitle">クエスト：水を合成せよ</h3>
+        <div class="progress-container">
+            <div id="questProgress" class="progress-bar">0%</div>
+        </div>
         <div id="questList"></div>
     </div>
 
