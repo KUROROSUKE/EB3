@@ -1422,9 +1422,9 @@ async function saveWinSettings() {
 // show input tag of compound URL
 function showInputTag() {
     if (document.getElementById("compoundsSelection").value == "url"){
-        document.getElementById("compoundsURL").style.display = "inline";
+        document.getElementById("compoundsUrlRow").style.display = "flex";
     } else {
-        document.getElementById("compoundsURL").style.display = "none";
+        document.getElementById("compoundsUrlRow").style.display = "none";
     };
 }
 
@@ -1899,8 +1899,6 @@ document.addEventListener('DOMContentLoaded', async function () {
     await init_json();
     await initializeMaterials();
     await loadQuestsStatus();
-    addInputModelDiv();
-    addLoadingButton();
     peerID = await generatePeerID();
     peer = new Peer(peerID);
     peer.on('open', id => {

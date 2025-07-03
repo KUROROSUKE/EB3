@@ -10,7 +10,7 @@
     <link rel="manifest" href="https://kurorosuke.github.io/EB3/manifest.json">
     <meta name="theme-color" content="#000000">
     <title>エメバト</title>
-    <link rel="stylesheet" href="game.min.css">
+    <link rel="stylesheet" href="game.css">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-core" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-layers" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs-backend-cpu" defer></script>
@@ -231,39 +231,66 @@
                     <p style="text-align:center; font-weight:bold"> ~ 補足説明 ~ </p>
                     <p>精製：自分の手札だけを使ってアガる事<br>融合：相手が最後に捨てたカードも使ってアガる事</p>
                 </div>
+                <a href="https://kurorosuke.github.io/EB3/GameRules.html">詳しいルール</a>
             </div>
         </div>
     </div>
     <!--- 設定画面 -->
     <div id="settingsScreen" style="display:none;">
-        <p>詳しいルール： <a href="https://kurorosuke.github.io/EB3/GameRules.html">GameRules</a></p>
-        <label>コールドスコア： <input type="number" id="winPointInput" value="100" min="1"></label><br>
-        <label>ゲームターン数： <input type="number" id="winTurnInput" value="5" min="1"></label><br>
-        <label>学習するか　　： <input type="checkbox" id="IsTraining" checked></label><br>
-        <label>相手しきい値　： <input type="number" id="threshold" value="20"></label><br>
-        <div style="padding:0 5% 0 0">
-            <label>化合物のURL(JSON)：
-            <select id="compoundsSelection" onchange="showInputTag()">
-                <option value="compact">compact</option>
-                <option value="standard">standard</option>
-                <option value="extended" selected>extended</option>
-                <option value="url">URL</option>
-            </select><br>
-            <div></div>
-            <input type="url" id="compoundsURL" style="display:none; width:100%;padding:10px">
-            </label>
+        <div class="settings-form-wrapper">
+            <div class="settings-form">
+                <!-- ━━ 基本設定 ━━ -->
+                <div class="row">
+                    <label for="winPointInput">コールドスコア</label>
+                    <input type="number" id="winPointInput" value="100" min="1">
+                </div>
+                <div class="row">
+                    <label for="winTurnInput">ゲームターン数</label>
+                    <input type="number" id="winTurnInput" value="5" min="1">
+                </div>
+                <div class="row">
+                    <label for="IsTraining">学習するか</label>
+                    <input type="checkbox" id="IsTraining" checked>
+                </div>
+                <div class="row">
+                    <label for="threshold">相手しきい値</label>
+                    <input type="number" id="threshold" value="20">
+                </div>
+            
+                <!-- ━━ データソース設定 ━━ -->
+                <div class="row">
+                    <label for="compoundsSelection">化合物のURL(JSON)</label>
+                    <select id="compoundsSelection" onchange="showInputTag()">
+                        <option value="compact">compact</option>
+                        <option value="standard">standard</option>
+                        <option value="extended" selected>extended</option>
+                        <option value="url">URL</option>
+                    </select>
+                </div>
+                <div class="row" id="compoundsUrlRow" style="display:none;">
+                    <label for="compoundsURL">　URL</label>
+                    <input type="url" id="compoundsURL" placeholder="https://kurorosuke.github.io/standard.json">
+                </div>
+
+                <div class="row">
+                    <label for="ModelDetail">AIモデルの設定</label>
+                    <button id="ModelDetail" onclick="showModelDetail()" style="margin-left:10px">設定</button>
+                </div>
+                <div id="modelModals"></div>
+
+                <!-- ━━ ボタン ━━ -->
+                <div class="btn-area">
+                    <button onclick="saveWinSettings()">適用</button>
+                    <button onclick="closeWinSettings()">取消</button>
+                </div>
+            </div>
+
         </div>
-        <div style="padding:0 5% 0 0">
-            <label style="width:100%">AIモデルのURL(JSON)：<button id="ModelDetail" onclick="showModelDetail()" style="margin:0 0 0 10px">設定</button><br>
-        </div>
-        <div style="display: flex; justify-content: space-between; padding: 5%;">
-            <button onclick="saveWinSettings()" style="padding: 10px 20px; font-size: 1.2em; width: 45%;">適用</button>
-            <button onclick="closeWinSettings()" style="padding: 10px 20px; font-size: 1.2em; width: 45%;">取消</button>
-        </div>
+        <!-- ▼ そのまま残す要素 ▼ -->
         <hr>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">問い合わせフォーム</a>
         <div id="modelModals"></div>
-    </div>
+        </div>
     <!--- 辞書画面 -->
     <div id="dictionaryScreen" style="
         display:none;
@@ -427,6 +454,6 @@
         }
     </script>
 
-    <script src="game.min.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
