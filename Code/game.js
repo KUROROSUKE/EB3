@@ -1187,7 +1187,6 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         console.log("ゲーム終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
-            const user = firebase.auth().currentUser;
             p1_point = 0;
             p2_point = 0;
             numTurn = 1;
@@ -2086,6 +2085,7 @@ function resetGame() {
     view_p2_hand();
     document.getElementById("hint_button").style.display = "inline";
 
+    //もし最初、自分のターンじゃないなら相手から実行
     if (turn !== MineTurn && GameType=="CPU") {
         setTimeout(() => p1_action(), 500);
     };
@@ -2171,8 +2171,8 @@ async function finish_done_select(p1_make_material, p2_make_material_arg, who, i
     p1_point += thisGame_p1_point;
     p2_point += thisGame_p2_point;
 
-    document.getElementById("p1_point").innerHTML = p1_point.toString();
-    document.getElementById("p2_point").innerHTML = p2_point.toString();
+    document.getElementById("p1_point").innerHTML += `+${thisGame_p1_point}`;
+    document.getElementById("p2_point").innerHTML += `+${thisGame_p2_point}`;
     document.getElementById("p2_explain").innerHTML = `生成物質：${p2_make_material_arg.a}, 組成式：${p2_make_material_arg.b}`;
     document.getElementById("p1_explain").innerHTML = `生成物質：${p1_make_material.a}, 組成式：${p1_make_material.b}`;
 
@@ -2223,27 +2223,26 @@ async function winnerAndChangeButton() {
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
         });
-        } 
-        // 6. winner が true → 「ラウンド終了」ボタン
-        else {
+    } else {
         console.log("ラウンド終了");
         button.textContent = "ラウンド終了";
         button.addEventListener("click", function () {
             p1_point = 0;
             p2_point = 0;
-            numTurn = 0;
+            numTurn = 1;
             const user = firebase.auth().currentUser;
             if (IsRankMatch && MineTurn=="p2") {updateRating(user.uid, opponentUid);}
             IsRankMatch = false;
+
+            conn.close();
 
             resetGame();
             returnToStartScreen();
             button.style.display = "none";
             
-            //先にラウンド終了ボタンを押したら切断判定される
+
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
-            conn.close();
         });
     }
 }
@@ -2332,12 +2331,9 @@ function setupConnection() {
         /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            console.log("でてきたよ！！！！！！！！");
             if (turn===MineTurn) {
-                console.log("処理１！！！！！！！！！")
                 document.getElementById("generate_button").style.display = "inline";
             } else {
-                console.log("処理２！！！！！！！！！")
                 document.getElementById("generate_button").style.display = "none";
             }
             return;
@@ -2379,10 +2375,8 @@ function setupConnection() {
 
         /* スコア同期 */
         if (data.type === "pointsData") {
-            document.getElementById("p1_point").innerHTML +=
-                `+${data.p1_point - p1_point}`;
-            document.getElementById("p2_point").innerHTML +=
-                `+${data.p2_point - p2_point}`;
+            document.getElementById("p1_point").innerHTML += `+${data.p1_point - p1_point}`;
+            document.getElementById("p2_point").innerHTML += `+${data.p2_point - p2_point}`;
             document.getElementById("p1_explain").innerHTML = data.p1_explain;
             document.getElementById("p2_explain").innerHTML = data.p2_explain;
             p1_point = data.p1_point;
@@ -2405,7 +2399,9 @@ function setupConnection() {
     /*--- 切断 ---*/
     conn.on('close', () => {
         console.log(document.getElementById("nextButton").textContent);
-        if (document.getElementById("nextButton").textContent != "ラウンド終了") {
+        if (document.getElementById("nextButton").textContent === "次のゲーム") {
+            console.log(document.getElementById("nextButton").textContent == "次のゲーム")
+            console.log(document.getElementById("nextButton").textContent === "次のゲーム")
             alert("ゲーム終了");
             returnToStartScreen();
         }
@@ -2438,7 +2434,6 @@ function changeTurn(newTurn) {
     if (conn && conn.open) {
         turn = newTurn;
         conn.send({ type: "turn", value: newTurn });
-        console.log("おくったよぉ！！！！！");
         if (turn === MineTurn) {
             document.getElementById("generate_button").style.display = "inline";
         } else {
