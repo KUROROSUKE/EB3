@@ -1893,33 +1893,45 @@ let GameType;
 let JSZip;
 // init web game
 document.addEventListener('DOMContentLoaded', async function () {
-    await preloadBackgroundImages();
-    await preloadImages();
-    await loadModel();
-    await init_json();
-    await initializeMaterials();
-    await loadQuestsStatus();
-    peerID = await generatePeerID();
-    peer = new Peer(peerID);
-    peer.on('open', id => {
-        console.log(id);
-        document.getElementById('my-id').innerText = `自分のPeerID：${id}`;
-        document.getElementById("PeerModal").style.display = "none";
-    });
-    peer.on('connection', connection => {
-        conn = connection;
-        if (MineTurn === null) {
-            MineTurn = "p2"; // 後から接続した側は p2
-            //console.log("✅ あなたはゲスト (p2) になりました！");
+     await preloadBackgroundImages();
+     await preloadImages();
+     await loadModel();
+     await init_json();
+     await initializeMaterials();     // ← materials がここで読み込み完了
+
+    /* ───────────── 直前に開いていた辞書モーダルを復元 ───────────── */
+    const last = sessionStorage.getItem('lastDictionary');  // ← openMoleculeDetail で保存しておいた ID
+    if (last) {
+        const m = materials.find(x => x.b === last);        // b プロパティが ID
+        if (m) {
+            switchTab('dictionary');  // 辞書タブへ
+            openMoleculeDetail(m);    // モーダルを再表示
         }
-        setupConnection();
-    });
-    fetchRankingRealtime();
-    document.getElementById("loading").style.display = "none";
-    document.getElementById("startButton").style.display = "inline";
-    document.getElementById("OnlineStartButton").style.display = "inline";
-    JSZip = (await import('https://cdn.skypack.dev/jszip@3.10.0')).default;
+    }
+    /* ──────────────────────────────────────────────────────── */
+
+     await loadQuestsStatus();
+     peerID = await generatePeerID();
+     peer = new Peer(peerID);
+     peer.on('open', id => {
+         console.log(id);
+         document.getElementById('my-id').innerText = `自分のPeerID：${id}`;
+         document.getElementById("PeerModal").style.display = "none";
+     });
+     peer.on('connection', connection => {
+         conn = connection;
+         if (MineTurn === null) {
+             MineTurn = "p2"; // 後から接続した側は p2
+         }
+         setupConnection();
+     });
+     fetchRankingRealtime();
+     document.getElementById("loading").style.display = "none";
+     document.getElementById("startButton").style.display = "inline";
+     document.getElementById("OnlineStartButton").style.display = "inline";
+     JSZip = (await import('https://cdn.skypack.dev/jszip@3.10.0')).default;
 });
+
 // initialize hand
 function random_hand() {
     for (let i = 0; i < card_num; i++) {
@@ -2735,11 +2747,13 @@ function populateDictionary() {
 
 function openMoleculeDetail(material) {
     material4explain =  material; // initMarkdownToggleで重複して動作させない
+    sessionStorage.setItem('lastDictionary', material.b);
     /* --- テキスト ---- */
     detailName.textContent      = material.a;
     detailFormula.textContent   = `組成式: ${material.b}`;
     detailPoint.textContent     = `ポイント: ${material.c}`;
     detailAdvantage.textContent = `有利な物質: ${material.e.join(', ')}`;
+
 
     /* --- モーダルを表示して高さを確定 --- */
     moleculeDetailModal.style.display = 'block';
@@ -2754,6 +2768,7 @@ function openMoleculeDetail(material) {
 
 function closeMoleculeDetail() {
     document.getElementById('moleculeDetailModal').style.display = 'none';
+    sessionStorage.removeItem('lastDictionary');
 }
 
 /* ===== Markdown 説明：保存／読込 ===== */
