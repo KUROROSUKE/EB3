@@ -2661,46 +2661,35 @@ function normalizeFormula(text) {
     }
     return result;
 }
+function createOrGetViewer() {
+    if (viewer3D) return viewer3D;          // 既にあれば再利用
+    viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
+    window.addEventListener('resize', () => viewer3D.resize());
+    return viewer3D;
+}
 function safeCreateViewer() {
-  const box = document.getElementById('viewer3D');
-  if (box.offsetWidth === 0 || box.offsetHeight === 0) {
-      // レイアウトが確定するまで待つ
-      return new Promise(r => requestAnimationFrame(() => r(safeCreateViewer())));
-  }
-  // サイズがあるので安全
-  return Promise.resolve(
-      $3Dmol.createViewer(box, { backgroundColor: 'white' })
-  );
+    const box = document.getElementById('viewer3D');  
+    if (box.offsetWidth === 0 || box.offsetHeight === 0) {
+        // レイアウトが確定するまで待つ
+        return new Promise(r => requestAnimationFrame(() => r(safeCreateViewer())));
+    }
+    // サイズがあるので安全
+    return Promise.resolve(
+        $3Dmol.createViewer(box, { backgroundColor: 'white' })
+    );
 }
 
 async function view3DMaterial(formula) {
+    const v = createOrGetViewer();
+    v.removeAllModels(); v.removeAllShapes();
 
-    /* 1) Viewer を用意（なければ新規） */
-    if (!viewer3D) {
-        viewer3D = await safeCreateViewer();
-        //viewer3D = $3Dmol.createViewer('viewer3D', { backgroundColor: 'white' });
-        /* 画面回転・リサイズ時にも常にサイズを合わせる */
-        window.addEventListener('resize',            () => { viewer3D.resize(); viewer3D.render(); });
-        window.addEventListener('orientationchange', () => { viewer3D.resize(); viewer3D.render(); });
-    } else {
-        viewer3D.removeAllModels();
-        viewer3D.removeAllShapes();
-    }
-    console.log('viewer exists', !!$3Dmol.viewers.viewer3D);
-    console.log('canvas alive',  document.getElementById('viewer3D')?.offsetWidth,
-                                document.getElementById('viewer3D')?.offsetHeight);
-    console.log('contexts', Object.keys($3Dmol.viewers).length,
-                $3Dmol.viewers.viewer3D?.gl()?.isContextLost?.());
+    const url = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
+    const mol = await (await fetch(url)).text();
+    //console.log(mol);
 
-    /* 2) mol ファイルを取得 */
-    const url     = `https://kurorosuke.github.io/MolData/${await normalizeFormula(formula)}.mol`;
-    const molText = await (await fetch(url)).text();
-
-    /* 3) 描画 */
-    viewer3D.addModel(molText, 'sdf');
-    viewer3D.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
-    viewer3D.zoomTo();
-    viewer3D.render();   // その後で描画
+    v.addModel(mol, 'sdf');
+    v.setStyle({}, { stick: {}, sphere: { scale: 0.3 } });
+    v.zoomTo(); v.render();
 }
 
 
@@ -2759,7 +2748,7 @@ function openMoleculeDetail(material) {
     requestAnimationFrame(() => view3DMaterial(material.b));
 
     detailDescription.value = '';
-    initMarkdownToggle();
+    initMarkdownToggle(material);
 }
 
 
@@ -2779,7 +2768,7 @@ async function loadDescription(id) {                    // 読込（なければ
 }
 
 /* ===== Markdown 編集／閲覧トグル ===== */
-function initMarkdownToggle() {
+function initMarkdownToggle(material) {
     const textarea = document.getElementById('detailDescription');
     const preview  = document.getElementById('markdownPreview');
     const editBtn  = document.getElementById('editButton');
@@ -2809,13 +2798,14 @@ function initMarkdownToggle() {
     editBtn.addEventListener('click', showEditor);  // 編集→エディター
 
     /* 3) 起動時に保存有無でモードを決定 -------------- */
-    loadDescription(material4explain.b).then(saved => {
-        if (saved) {
-            textarea.value = saved;
+    loadDescription(material4explain.b).then(elem => {
+        console.log(elem)
+        if (elem) {
+            textarea.value = elem;
             showPreview();          // ← 保存データあり：プレビューから開始
         } else {
-            textarea.value = '';
             showEditor();           // ← なし：エディターから開始
+            textarea.value = `[${material.a}のwikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
         }
     });
 }
@@ -2861,38 +2851,43 @@ document.getElementById('dictSort').addEventListener('change', e => {
 
 const quests = [
     { id: 1, name: "水を合成せよ", type:"create", target: "H₂O", completed: false, award: 50 },
-    { id: 2, name: "塩化ナトリウムを合成せよ", type: "create", target: "NaCl", completed: false, award: 50 },
-    { id: 3, name: "25ポイント以上の物質を合成せよ", type:"point", targetPoint: 25, completed: false, award: 50 },
-    { id: 4, name: "アセチレンを合成せよ", type: "create", target: "C₂H₂", completed: false, award: 50 },
-    { id: 5, name: "オゾンを合成せよ", type: "create", target: "O₃", completed: false, award: 50 },
-    { id: 6, name: "メチルを合成せよ", type: "create", target: "CH₃", completed: false, award: 50 },
-    { id: 7, name: "アンモニアを合成せよ", type:"create", target: "NH₃", completed: false, award: 100 },
-    { id: 8, name: "シアン化水素を合成せよ", type:"create", target: "HCN", completed: false, award: 100 },
-    { id: 9, name: "酢酸を合成せよ", type:"create", target: "CH₃COOH", completed: false, award: 150 },
-    { id: 10, name: "亜リン酸を合成せよ", type:"create", target: "H₃PO₃", completed: false, award: 130 },
-    { id: 11, name: "60ポイント以上の物質を合成せよ", type:"point", targetPoint: 60, completed: false, award: 100 },
-    { id: 12, name: "ヨウ化カリウムを合成せよ", type: "create", target: "KI", completed: false, award: 50 },
-    { id: 13, name: "過酸化水素を合成せよ", type: "create", target: "H₂O₂", completed: false, award: 75 },
-    { id: 14, name: "炭酸を合成せよ", type: "create", target: "H₂CO₃", completed: false, award: 120 },
-    { id: 15, name: "フッ化カルシウムを合成せよ", type: "create", target: "CaF₂", completed: false, award: 140 },
-    { id: 16, name: "硫酸を合成せよ", type: "create", target: "H₂SO₄", completed: false, award: 180 },
-    { id: 17, name: "硝酸を合成せよ", type: "create", target: "HNO₃", completed: false, award: 160 },
-    { id: 18, name: "リン酸を合成せよ", type: "create", target: "H₃PO₄", completed: false, award: 200 },
-    { id: 19, name: "80ポイント以上の物質を合成せよ", type: "point", targetPoint: 80, completed: false, award: 150 },
-    { id: 20, name: "シュウ酸を合成せよ", type: "create", target: "O₃", completed: false, award: 250 },
-    { id: 21, name: "100ポイント以上の物質を合成せよ", type: "point", targetPoint: 100, completed: false, award: 200 },
-    { id: 22, name: "メタンを合成せよ", type: "create", target: "CH₄", completed: false, award: 80 },
-    { id: 23, name: "ホルムアルデヒドを合成せよ", type: "create", target: "CH₂O", completed: false, award: 80 },
-    { id: 24, name: "メタノールを合成せよ", type: "create", target: "CH₃OH", completed: false, award: 80 },
-    { id: 25, name: "エタノールを合成せよ", type: "create", target: "C₂H₅OH", completed: false, award: 170 },
-    { id: 26, name: "二酸化三鉄（酸化鉄II）を合成せよ", type: "create", target: "Fe₂O₃", completed: false, award: 150 },
-    { id: 27, name: "チオシアン酸アンモニウムを合成せよ", type: "create", target: "NH₄SCN", completed: false, award: 170 },
-    { id: 28, name: "チオ硫酸ナトリウムを合成せよ", type: "create", target: "Na₂S₂O₃", completed: false, award: 200 },
-    { id: 29, name: "リン酸二水素ナトリウムを合成せよ", type: "create", target: "NaH₂PO₄", completed: false, award: 180 },
-    { id: 30, name: "120ポイント以上の物質を合成せよ", type: "point", targetPoint: 120, completed: false, award: 250 },
-    { id: 31, name: "ホウ酸を合成せよ", type: "create", target: "H₃BO₃", completed: false, award: 130 },
-    { id: 32, name: "ヨウ素酸カリウムを合成せよ", type: "create", target: "KIO₄", completed: false, award: 130 },
-    { id: 33, name: "リン酸水素ナトリウムを合成せよ", type: "create", target: "Na₂HPO₄", completed: false, award: 180 },
+    { id: 2, name: "25ポイント以上の物質を合成せよ", type:"point", targetPoint: 25, completed: false, award: 50 },
+    { id: 3, name: "アセチレンを合成せよ", type: "create", target: "C₂H₂", completed: false, award: 50 },
+    { id: 4, name: "オゾンを合成せよ", type: "create", target: "O₃", completed: false, award: 50 },
+    { id: 5, name: "酸化ベリリウムを合成せよ", type: "create", target: "BeO", completed: false, award: 50 },
+    { id: 6, name: "水素化リチウムを合成せよ", type: "create", target: "LiH", completed: false, award: 50 },
+    { id: 7, name: "メチルを合成せよ", type: "create", target: "CH₃", completed: false, award: 50 },
+    { id: 8, name: "アンモニアを合成せよ", type:"create", target: "NH₃", completed: false, award: 100 },
+    { id: 9, name: "塩化ナトリウムを合成せよ", type: "create", target: "NaCl", completed: false, award: 50 },
+    { id: 10, name: "シアン化水素を合成せよ", type:"create", target: "HCN", completed: false, award: 100 },
+    { id: 11, name: "酢酸を合成せよ", type:"create", target: "CH₃COOH", completed: false, award: 150 },
+    { id: 12, name: "亜リン酸を合成せよ", type:"create", target: "H₃PO₃", completed: false, award: 130 },
+    { id: 13, name: "炭酸マグネシウムを合成せよ", type:"create", target: "MgCO₃", completed: false, award: 130 },
+    { id: 14, name: "60ポイント以上の物質を合成せよ", type:"point", targetPoint: 60, completed: false, award: 100 },
+    { id: 15, name: "ヨウ化カリウムを合成せよ", type: "create", target: "KI", completed: false, award: 50 },
+    { id: 16, name: "過酸化水素を合成せよ", type: "create", target: "H₂O₂", completed: false, award: 75 },
+    { id: 17, name: "窒化アルミニウムを合成せよ", type: "create", target: "AlN", completed: false, award: 75 },
+    { id: 18, name: "二酸化ケイ素を合成せよ", type: "create", target: "SiO₂", completed: false, award: 75 },
+    { id: 19, name: "炭酸を合成せよ", type: "create", target: "H₂CO₃", completed: false, award: 120 },
+    { id: 20, name: "フッ化カルシウムを合成せよ", type: "create", target: "CaF₂", completed: false, award: 140 },
+    { id: 21, name: "硫酸を合成せよ", type: "create", target: "H₂SO₄", completed: false, award: 180 },
+    { id: 22, name: "硝酸を合成せよ", type: "create", target: "HNO₃", completed: false, award: 160 },
+    { id: 23, name: "リン酸を合成せよ", type: "create", target: "H₃PO₄", completed: false, award: 200 },
+    { id: 24, name: "80ポイント以上の物質を合成せよ", type: "point", targetPoint: 80, completed: false, award: 150 },
+    { id: 25, name: "シュウ酸を合成せよ", type: "create", target: "O₃", completed: false, award: 250 },
+    { id: 26, name: "100ポイント以上の物質を合成せよ", type: "point", targetPoint: 100, completed: false, award: 200 },
+    { id: 27, name: "メタンを合成せよ", type: "create", target: "CH₄", completed: false, award: 80 },
+    { id: 28, name: "ホルムアルデヒドを合成せよ", type: "create", target: "CH₂O", completed: false, award: 80 },
+    { id: 29, name: "メタノールを合成せよ", type: "create", target: "CH₃OH", completed: false, award: 80 },
+    { id: 30, name: "エタノールを合成せよ", type: "create", target: "C₂H₅OH", completed: false, award: 170 },
+    { id: 31, name: "二酸化三鉄（酸化鉄II）を合成せよ", type: "create", target: "Fe₂O₃", completed: false, award: 150 },
+    { id: 32, name: "チオシアン酸アンモニウムを合成せよ", type: "create", target: "NH₄SCN", completed: false, award: 170 },
+    { id: 33, name: "チオ硫酸ナトリウムを合成せよ", type: "create", target: "Na₂S₂O₃", completed: false, award: 200 },
+    { id: 34, name: "リン酸二水素ナトリウムを合成せよ", type: "create", target: "NaH₂PO₄", completed: false, award: 180 },
+    { id: 35, name: "120ポイント以上の物質を合成せよ", type: "point", targetPoint: 120, completed: false, award: 250 },
+    { id: 36, name: "ホウ酸を合成せよ", type: "create", target: "H₃BO₃", completed: false, award: 130 },
+    { id: 37, name: "ヨウ素酸カリウムを合成せよ", type: "create", target: "KIO₄", completed: false, award: 130 },
+    { id: 38, name: "リン酸水素ナトリウムを合成せよ", type: "create", target: "Na₂HPO₄", completed: false, award: 180 },
 ];
 let currentQuestIndex = 0;
 
