@@ -2799,15 +2799,19 @@ function initMarkdownToggle(material) {
 
     /* 3) 起動時に保存有無でモードを決定 -------------- */
     loadDescription(material4explain.b).then(elem => {
-        console.log(elem)
         if (elem) {
+            // 保存データあり：そのまま使う
             textarea.value = elem;
-            showPreview();          // ← 保存データあり：プレビューから開始
         } else {
-            showEditor();           // ← なし：エディターから開始
-            textarea.value = `[${material.a}のwikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
+            // なし：デフォルト文を仕込む
+            textarea.value =
+                `[${material.a}のwikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
         }
+        
+        // ここで必ずプレビュー表示に切り替える
+        showPreview();
     });
+    
 }
 
 
