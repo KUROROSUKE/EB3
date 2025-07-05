@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>Markdown × HTML 速習サンプル</title>
+<style>
+  body {font-family: system-ui, "Helvetica Neue", Arial, "Hiragino Sans", Meiryo, sans-serif; line-height:1.6; margin: 2rem; max-width: 960px;}
+  h1,h2 {margin-top:2.4rem; border-bottom: 1px solid #ddd; padding-bottom:.2rem;}
+  h3 {margin:1.8rem 0 .6rem;}
+  pre {background:#f7f7f7; padding:.8rem; border-radius:6px; overflow:auto;}
+  table {border-collapse:collapse; width:100%;}
+  th,td {border:1px solid #ccc; padding:.4rem .6rem;}
+  tbody tr:nth-child(odd){background:#fafafa;}
+  code {background:#f2f2f2; padding:.1rem .3rem; border-radius:3px;}
+  /* 見た目確認用 */
+  .render {background:#fffdf5; border:1px dashed #ffa500; padding:.8rem; margin-top:.4rem;}
+</style>
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+<script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js" defer></script>
+</head>
+<body>
+
+<h1>Markdown記法について</h1>
+
+<!-- 1. 改行 -->
+<h2 id="linebreak">1. 改行</h2>
+<p>
+    1行目：最後に半角スペース2つ<br>
+    2行目：改行を1回ぶん開ける<br>
+    3行目：「&lt;br&gt;」を使っています。<br>
+</p>
+<h3>編集した内容</h3>
+<pre>
+<code>これは 1 行目  
+これは 2 行目
+
+これは 3 行目&lt;br&gt;
+これは 4 行目</code>
+</pre>
+<h3>表示した結果</h3>
+<div class="render">
+これは 1 行目<br>
+これは 2 行目<br>
+これは 3 行目<br>
+これは 4 行目
+</div>
+
+<!-- 2. 文字サイズ（見出し／HTML span） -->
+<h2 id="fontsize">2. 文字サイズ</h2>
+<pre><code># 見出し (H1)  
+&lt;h1&gt;もしくはh1タグ（h1 から h6まであり、徐々に小さくなります）&lt;/h1&gt;
+### 小見出し (H3)  
+
+テキストを &lt;span style="font-size:3.25rem"&gt;font-sizeに応じて&lt;/span&gt;大きくできます。
+
+</code></pre>
+<div class="render">
+<h1 style="margin:0">見出し (H1)</h1>
+<h1 style="margin:0">もしくはh1タグ（h1 から h6まであり、徐々に小さくなります）</h1>
+<h3 style="margin:0">小見出し (H3)</h3>
+<p>テキストを <span style="font-size:3.25rem">font-sizeに応じて</span>大きくできます。</p>
+</div>
+
+<!-- 3. 強調・下付き/上付き -->
+<h2 id="emphasis">3. 強調・下付き/上付き</h2>
+<pre><code>*italic* / _italic_ ： *を2つ使って文字を囲むか_を2つ使って囲む
+**bold** / __bold__ ：**を2つ使って文字を囲むか__を2つ使って囲む
+~~strike~~          ：~~を2つ使って文字を囲む
+H~2~O  (下付き)     ：~を2つ使って文字を囲む
+E = mc^2^  (上付き) ：^を2つ使って文字を囲む
+HTMLを使っても同じことができます。調べてみてください。
+<div class="render"><em>italic</em> / <em>italic</em>
+<strong>bold</strong> / <strong>bold</strong>
+<s>strike</s>
+H<sub>2</sub>O  (下付き) 
+E = mc<sup>2</sup>  (上付き) 
+</div>
+</code>
+</pre>
+<!-- 4. リスト -->
+<h2 id="list">4. リスト</h2>
+<pre><code>- 無順序 1
+- 無順序 2
+  1. ネスト 1
+  2. ネスト 2
+- [x] タスク完了
+- [ ] タスク未完了</code></pre>
+<div class="render">
+<ul>
+  <li>無順序 1</li>
+  <li>無順序 2
+    <ol>
+      <li>ネスト 1</li>
+      <li>ネスト 2</li>
+    </ol>
+  </li>
+  <li><input type="checkbox" checked disabled> タスク完了</li>
+  <li><input type="checkbox" disabled> タスク未完了</li>
+</ul>
+</div>
+
+<!-- 5. 表 -->
+<h2 id="table">5. 表</h2>
+<pre><code>| 列A | 列B | 列C |
+|----|:--:|--:|
+| 左  | 中 | 右 |
+| α  | β  | γ |</code></pre>
+<div class="render">
+<table>
+<thead><tr><th>列A</th><th style="text-align:center">列B</th><th style="text-align:right">列C</th></tr></thead>
+<tbody>
+<tr><td>左</td><td style="text-align:center">中</td><td style="text-align:right">右</td></tr>
+<tr><td>α</td><td style="text-align:center">β</td><td style="text-align:right">γ</td></tr>
+</tbody>
+</table>
+</div>
+
+<!-- 6. リンク -->
+<h2 id="link">6. リンク</h2>
+<pre><code>[ChatGPT](https://chat.openai.com "OpenAI Chat")  
+&lt;a href="https://example.com" target="_blank"&gt;HTMLリンク（example.com）&lt;/a&gt;</code></pre>
+<div class="render">
+<a href="https://chat.openai.com" title="OpenAI Chat">ChatGPT</a><br>
+<a href="https://example.com" target="_blank">HTMLリンク</a>
+</div>
+
+<!-- 7. 画像（URL） -->
+<h2 id="image">7. 画像（URL）</h2>
+<pre><code>![EB3 icon](https://kurorosuke.github.io/EB3/icons/icon-192.png)  
+&lt;img src="https://placekitten.com/120/80" alt="1.webp"&gt;
+// HTMLの場合、大きさを変えることもできます
+&lt;img src="https://placekitten.com/120/80" style="width:100px;" alt="resized 1.webp"&gt;</code></pre>
+<div class="render">
+<img src="https://kurorosuke.github.io/EB3/icons/icon-192.png" alt="EB3 icon"><br>
+<img src="https://kurorosuke.github.io/EB3/images/1.webp" alt="1.webp"><br>
+<img src="https://kurorosuke.github.io/EB3/images/1.webp" style="width:100px;" alt="resized 1.webp">
+</div>
+
+<!-- 8. 数式 -->
+<h2 id="math">8. 数式</h2>
+<pre>
+数式はMathJaxを利用しているため、Texでかいてください。
+あるいは下付き文字などでも書くことができます。
+インライン（文章の途中で数式を書く）のときは「$」を2つ使いTex式を囲み、ブロック（文章と数式を分けて書く）のときは「$$」を2つ使いTex式を囲みます。
+<code>
+
+
+インライン: $E = mc^2$  
+ブロック１：$$\int_a^b f(x)\,dx = F(b) - F(a)$$
+ブロック２：
+$$
+\int_a^b f(x)\,dx = F(b) - F(a)
+$$
+</code>
+</pre>
+<div class="render">
+    <p>インライン: $E = mc^2$</p>
+    <p>ブロック１：</p>
+    <p>$$\int_a^b f(x)\,dx = F(b) - F(a)$$</p>
+    <p>ブロック２：</p>
+    <p>
+    $$
+    \int_{-\infty}^{\infty} e^{-x^2}\,dx = \sqrt{\pi}
+    $$
+    </p>
+</div>
+
+</body>
+</html>
