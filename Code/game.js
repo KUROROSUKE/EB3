@@ -2815,7 +2815,7 @@ function initMarkdownToggle(material) {
 
   // initial load
   loadDescription(material.b).then(text => {
-    textarea.value = text ?? `[${material.a} の Wikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
+    textarea.value = text ?? `[${material.a} の Wikipedia](https://ja.wikipedia.org/wiki/${material.a})<br>`;
     showPreview();
   });
 }
