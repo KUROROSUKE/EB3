@@ -2779,50 +2779,50 @@ async function loadDescription(id) {                    // 読込（なければ
 
 /* ===== Markdown 編集／閲覧トグル ===== */
 function initMarkdownToggle(material) {
-    const textarea = document.getElementById('detailDescription');
-    const preview  = document.getElementById('markdownPreview');
-    const editBtn  = document.getElementById('editButton');
-    const saveBtn  = document.getElementById('saveButton');
+  const textarea = document.getElementById('detailDescription');
+  const preview  = document.getElementById('markdownPreview');
+  const editBtn  = document.getElementById('editButton');
+  const saveBtn  = document.getElementById('saveButton');
 
-    /* 1) 内部関数：表示切替 ------------------------------ */
-    async function showPreview() {
-        preview.innerHTML      = marked.parse(textarea.value);
-        textarea.style.display = 'none';
-        preview.style.display  = 'block';
-        saveBtn.style.display  = 'none';
-        editBtn.style.display  = 'inline-block';
+  async function showPreview() {
+    // 1) Markdown → HTML
+    preview.innerHTML = marked.parse(textarea.value);
 
-        /* 決定時に自動保存 */
-        await saveDescription(material4explain.b, textarea.value);
+    // 2) TeX → SVG/HTML via MathJax (runs after MathJax is ready)
+    if (window.MathJax && MathJax.typesetPromise) {
+      await MathJax.typesetPromise([preview]);
     }
 
-    function showEditor() {
-        textarea.style.display = 'block';
-        preview.style.display  = 'none';
-        saveBtn.style.display  = 'inline-block';
-        editBtn.style.display  = 'none';
-    }
+    // 3) UI toggle
+    textarea.style.display = 'none';
+    preview.style.display  = 'block';
+    saveBtn.style.display  = 'none';
+    editBtn.style.display  = 'inline-block';
 
-    /* 2) ボタンイベント ------------------------------ */
-    saveBtn.addEventListener('click', showPreview); // 決定→保存＋プレビュー
-    editBtn.addEventListener('click', showEditor);  // 編集→エディター
+    // 4) auto‑save
+    await saveDescription(material.b, textarea.value);
+  }
 
-    /* 3) 起動時に保存有無でモードを決定 -------------- */
-    loadDescription(material4explain.b).then(elem => {
-        if (elem) {
-            // 保存データあり：そのまま使う
-            textarea.value = elem;
-        } else {
-            // なし：デフォルト文を仕込む
-            textarea.value =
-                `[${material.a}のwikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
-        }
-        
-        // ここで必ずプレビュー表示に切り替える
-        showPreview();
-    });
-    
+  function showEditor() {
+    textarea.style.display = 'block';
+    preview.style.display  = 'none';
+    saveBtn.style.display  = 'inline-block';
+    editBtn.style.display  = 'none';
+  }
+
+  saveBtn.addEventListener('click', showPreview);
+  editBtn.addEventListener('click', showEditor);
+
+  // initial load
+  loadDescription(material.b).then(text => {
+    textarea.value = text ?? `[${material.a} の Wikipedia](https://ja.wikipedia.org/wiki/${material.a})`;
+    showPreview();
+  });
 }
+
+
+
+
 
 
 let dictSearchQuery = '';

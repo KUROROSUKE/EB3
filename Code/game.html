@@ -20,6 +20,16 @@
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-database-compat.js"></script>
     <script src="https://3dmol.org/build/3Dmol-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        window.MathJax = {
+            tex: {
+            inlineMath: [['$', '$'], ['\\(', '\\)']],
+            displayMath: [['$$', '$$'], ['\\[', '\\]']]
+            },
+            svg: { fontCache: 'global' }
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"></script>
     <link rel="preload" as="image" href="../images/start_screen_mobile.webp" media="(max-width: 730px)">
     <link rel="preload" as="image" href="../images/start_screen_desktop.webp" media="(min-width: 731px)">
     <style>
@@ -231,7 +241,7 @@
                     <p style="text-align:center; font-weight:bold"> ~ 補足説明 ~ </p>
                     <p>精製：自分の手札だけを使ってアガる事<br>融合：相手が最後に捨てたカードも使ってアガる事</p>
                 </div>
-                <a href="https://kurorosuke.github.io/EB3/GameRules.html">詳しいルール</a>
+                <a href="https://kurorosuke.github.io/EB3/GameExplain/GameRules.html">詳しいルール</a>
             </div>
         </div>
     </div>
@@ -347,7 +357,14 @@
             <p id="detailPoint"></p>
             <p id="detailAdvantage"></p>
 
-            <h3>説明（Markdown可）</h3>
+            <h3 style="display:inline-block; margin:0; line-height:30px; vertical-align:middle;">説明（Markdown可）</h3>
+            <a href="https://kurorosuke.github.io/EB3/GameExplain/Markdown.html" aria-label="Markdownの説明ページ">
+                <img
+                    src="../images/question_icon.png"
+                    alt="question icon"
+                    style="width:30px; vertical-align:middle;"
+                >
+            </a>
             <!-- ▼ まとめて扱いやすいようラッパーを追加 -->
             <div id="descriptionContainer">
                 <!-- 入力 -->
@@ -362,6 +379,7 @@
             </div>
             <!-- 一番最後に完全に独立して配置 -->
             <h3>3D構造</h3>
+            <p style="font-size: small;">（イオン結合などで実際の構造との違いが出ることがあります）</p>
             <div style="width:350px; height:350px; border:1px solid #333; margin: 20px auto;">
                 <div id="viewer3D" style="width:350px; height:350px; position:relative;"></div>
             </div>
