@@ -66,7 +66,7 @@ auth.onAuthStateChanged(async (authUser) => {
     }
 
     // 最初の画面反映
-    document.getElementById('UserNameTag').textContent = `現在の名前： ${name}`;
+    document.getElementById('UserNameTag').textContent = `名前： ${name}`;
     document.getElementById('my-rate').textContent = `現在のレート： ${rate}`;
     document.getElementById('rankmatchModal').style.display = 'block';
 
@@ -192,8 +192,8 @@ function loginWithMail() {
 
 async function getAllNames() {
   const snapshot = await database.ref("players").once("value");
-  const users = snapshot.val();
-  return users ? Object.values(users).map(u => u.name) : [];
+  const users = await snapshot.val();
+  return users ? Object.values(users).map(u => u.Name) : [];
 }
 async function changeName() {
     const nameInput = document.getElementById("name-change");
@@ -205,6 +205,7 @@ async function changeName() {
     }
 
     const existingNames = await getAllNames();
+    console.log(existingNames)
     if (existingNames.includes(newName)) {
         console.log("❌ この名前は既に使われています");
         document.getElementById("UserDataMessage").innerHTML = "この名前は既に使われています";
@@ -217,7 +218,7 @@ async function changeName() {
     .then(() => {
         console.log("✅ 名前を更新しました");
         document.getElementById("UserDataMessage").innerHTML = "名前を更新しました";
-        document.getElementById('UserNameTag').innerHTML = `現在の名前： ${newName}`;
+        document.getElementById('UserNameTag').innerHTML = `名前： ${newName}`;
     })
     .catch(error => {
         console.log("❌ エラー：" + error.message);
