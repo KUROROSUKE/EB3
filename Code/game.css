@@ -19,7 +19,7 @@
 }
 #p2_area {
     text-align: center;
-}        
+}
 .buttons {
     width: 20vw;
     height:10vh;
@@ -398,7 +398,18 @@
     margin-bottom: 5px;
 }
 
+#user_logined_modal {
+    position: relative;
+    width: 60%;
+    height: auto;
+    border: 2px solid #000;
+    margin: 0 20% 0 20%;
+}
 @media screen and (max-width: 730px) {
+    #user_logined_modal {
+        width: 100%;
+        margin: 0px;
+    }
     #startButton {
         width: 60vw;
     }
@@ -495,89 +506,81 @@ input[type="number"]{
     border-radius: 10px;
     z-index: 99;  /* 最前面に */
 }
-.settings-form-wrapper{
-  max-width:600px;            /* 画面幅いっぱいに広がらない */
-  margin:0 auto;              /* 中央寄せ */
-  padding:2rem 1.5rem;
-  border:1px solid #dcdcdc;
-  border-radius:8px;
-  background:#fff;
-}
 .settings-form .row{
-  display:flex;               /* ラベルと入力を横並び */
-  align-items:center;
-  margin-bottom:0.8rem;
+    display:flex;       /* ラベルと入力を横並び */
+    align-items:center;
+    margin-bottom:0.8rem;
 }
 .settings-form label{
-  flex:0 0 160px;             /* ラベル列を固定幅に */
-  font-weight:600;
+    flex:0 0 160px;     /* ラベル列を固定幅に */
+    font-weight:600;
 }
 .settings-form input[type="number"],
 .settings-form input[type="url"],
 .settings-form select{
-  flex:1;                     /* 入力欄は残り幅いっぱい */
+    flex:1;     /* 入力欄は残り幅いっぱい */
 }
 /* チェックボックスはサイズを合わせておくと綺麗 */
 .settings-form input[type="checkbox"]{
-  transform: scale(1.4);
+    transform: scale(1.4);
 }
 /* ━━ ボタンエリア ━━ */
 .btn-area{
-  display:flex;
-  justify-content:center;     /* 中央寄せ */
-  gap:2rem;                   /* ボタン間の余白 */
-  margin-top:1.6rem;
+    display:flex;
+    justify-content:center;     /* 中央寄せ */
+    gap:2rem;   /* ボタン間の余白 */
+    margin-top:1.6rem;
 }
 .btn-area button{
-  min-width:160px;            /* 幅を揃えて安心感アップ */
-  padding:0.8rem 1rem;
-  font-size:1rem;
+    min-width:160px;    /* 幅を揃えて安心感アップ */
+    padding:0.8rem 1rem;
+    font-size:1rem;
 }
 /* ━━ Settings Screen レイアウト ━━ */
 .settings-form-wrapper{
-  max-width:600px;
-  margin:0 auto;
-  padding:2rem 1.5rem;
-  border:1px solid #dcdcdc;
-  border-radius:8px;
-  background:#fff;
+    max-width:600px;
+    margin:0 auto;
+    padding:2rem 1.5rem;
+    border:1px solid #dcdcdc;
+    border-radius:8px;
+    background:#fff;
 }
 .settings-form-wrapper .row{
-  display:flex;
-  align-items:center;
-  margin-bottom:0.8rem;
+    display:flex;
+    align-items:center;
+    margin-bottom:0.8rem;
 }
 .settings-form-wrapper label{
-  flex:0 0 160px;
-  font-weight:600;
+    flex:0 0 160px;
+    font-weight:600;
 }
 .settings-form-wrapper input,
 .settings-form-wrapper select{
-  flex:1;
-  padding:0.4rem 0.6rem;
+    flex:1;
+    padding:0.4rem 0.6rem;
 }
 .btn-area{
-  display:flex;
-  justify-content:center;
-  gap:2rem;
-  margin-top:1.6rem;
+    display:flex;
+    justify-content:center;
+    gap:2rem;
+    margin-top:1.6rem;
 }
 .btn-area button{
-  min-width:160px;
-  padding:0.8rem 1rem;
-  font-size:1rem;
+    min-width:160px;
+    padding:0.8rem 1rem;
+    font-size:1rem;
 }
 #compoundsURL::placeholder{
-  color:#aaa;     /* かなり薄いグレー */
-  opacity:0.6;    /* Safari/Firefox 用 */
+    color:#aaa;     /* かなり薄いグレー */
+    opacity:0.6;    /* Safari/Firefox 用 */
 }
 .progress-container{
-  width:100%;
-  height:24px;
-  background:#e0e0e0;
-  border-radius:12px;
-  overflow:hidden;
-  margin:10px 0 20px 0;
+    width:100%;
+    height:24px;
+    background:#e0e0e0;
+    border-radius:12px;
+    overflow:hidden;
+    margin:10px 0 20px 0;
 }
 
 .progress-bar{

@@ -98,7 +98,7 @@
         <!-- ゲーム -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/game_icon.webp" alt="gameTab" style="height: 60%;">
-            <button onclick="switchTab('game')" style="
+            <button onclick="switchTab('game')" aria-label="GameScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -108,7 +108,7 @@
         <!-- 設定 -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/setting_icon.webp" alt="settingTab" style="height: 60%;">
-            <button onclick="switchTab('settings')" style="
+            <button onclick="switchTab('settings')" aria-label="SettingScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -118,7 +118,7 @@
         <!-- 辞書 -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/dict_icon.webp" alt="DictionaryTab" style="height: 60%;">
-            <button onclick="switchTab('dictionary')" style="
+            <button onclick="switchTab('dictionary')" aria-label="DictionaryScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -128,7 +128,7 @@
         <!-- ランキング -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;">
             <img src="../images/trophy_icon.webp" alt="RankingTab" style="height: 60%;">
-            <button onclick="switchTab('ranking')" style="
+            <button onclick="switchTab('ranking')" aria-label="RankingScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -138,7 +138,7 @@
         <!-- ユーザ -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;" id="user_icon">
             <img src="../images/user_icon.webp" alt="UserSettingTab" style="height: 60%;">
-            <button onclick="switchTab('user')" style="
+            <button onclick="switchTab('user')" aria-label="UserScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -148,7 +148,7 @@
         <!-- ユーザ -->
         <div style="position: relative; width: 20%; height: 100%; display: flex; justify-content: center; align-items: center;" id="quest_icon">
             <img src="../images/quest_icon.webp" alt="QuestTab" style="height: 60%;">
-            <button onclick="switchTab('quest')" style="
+            <button onclick="switchTab('quest')" alt="QuestScreen" style="
                 position: absolute; top: 0; left: 0; width: 100%; height: 100%;
                 background: transparent; border: none; cursor: pointer;"></button>
         </div>
@@ -247,6 +247,7 @@
     </div>
     <!--- 設定画面 -->
     <div id="settingsScreen" style="display:none;">
+        <div style="text-align: center;"><h2>設定画面</h2></div>
         <div class="settings-form-wrapper">
             <div class="settings-form">
                 <!-- ━━ 基本設定 ━━ -->
@@ -300,7 +301,7 @@
         <hr>
         <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">問い合わせフォーム</a>
         <div id="modelModals"></div>
-        </div>
+    </div>
     <!--- 辞書画面 -->
     <div id="dictionaryScreen" style="
         display:none;
@@ -387,7 +388,7 @@
 
     </div>
     <!--- ランキング画面 -->
-    <div id="rankingScreen" style="display:none;overflow-y: auto;">
+    <div id="rankingScreen" style="display:none;overflow-y: auto;text-align:center;">
         <h2>ランキング</h2>
         <table id="rankingTable">
             <thead>
@@ -405,21 +406,25 @@
     <!--- ユーザ設定画面 -->
     <div id="userScreen" style="display:none;">
         <div id="LoginModal" style="display:none;">
-            <p>認証を行うことでランクマッチ等の記録が可能です</p>
-            <button onclick="loginWithGoogle()" id="GoogleLoginButton">Googleアカウント</button>
-            <button onclick="SignUpWithMail()" id="MailLoginButton" style="display:inline-block">メールで新規登録</button>
-            <button onclick="loginWithMail()" id="MailLoginButton" style="display:inline-block">メールでログイン</button>
+            <div style="text-align:center;">
+                <p>認証を行うことでランクマッチ等の記録が可能です</p>
+                <button onclick="loginWithGoogle()" id="GoogleLoginButton">Googleアカウント</button>
+                <button onclick="SignUpWithMail()" id="MailLoginButton" style="display:inline-block">メールで新規登録</button>
+                <button onclick="loginWithMail()" id="MailLoginButton" style="display:inline-block">メールでログイン</button>
+            </div>
             <hr>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">「元素ゲーム」問い合わせフォーム</a>
         </div>
-        <div id="UserDataModal" style="display:none;">
-            <div style="text-align: center;"><h3>ユーザーデータ</h3></div>
-            <p id="UserNameTag"></p>
-            <p id="my-rate"></p>
-            <input id="name-change" placeholder="変更する名前を入力してください">
-            <button onclick="changeName()">変更</button>
-            <p id="UserDataMessage"></p>
-            <button onclick="logout()">ログアウト</button>
+        <div id="UserDataModal" style="display:none;text-align:center;">
+            <div><h2>ユーザーデータ</h2></div>
+            <div id="user_logined_modal">
+                <p id="UserNameTag"></p>
+                <p id="my-rate"></p>
+                <input id="name-change" placeholder="変更する名前を入力してください" style="width:80%;font-size:larger;  box-sizing: border-box;">
+                <button onclick="changeName()">変更</button>
+                <p id="UserDataMessage"></p>
+                <div style="text-align: left;"><button onclick="logout()">ログアウト</button></div>
+            </div>
             <hr>
             <a href="https://docs.google.com/forms/d/e/1FAIpQLSfo-hnYnDQqgMsU9a8liqs4bGtJvwNZd31rlImhmcEToTC4uQ/viewform?usp=dialog" id="inquiry">「元素ゲーム」問い合わせフォーム</a>
         </div>
