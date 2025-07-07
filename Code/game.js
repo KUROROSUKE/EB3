@@ -2304,28 +2304,17 @@ function connectToPeer() {
 /* connection を必ず受け取る形に変更 */
 function setupConnection() {
     /*--- DataConnection が open したら共通初期化 ---*/
-    conn.on('open', async () => {
+    conn.on('open', () => {
         GameType = "P2P";
-        if (MineTurn === "p1") conn.send({ type: "role", value: "p2" });
+
+        /*   caller 側だけ role を送る  */
+        if (MineTurn === "p1") {
+            conn.send({ type: "role", value: "p2" });
+        }
 
         document.getElementById("PeerModal").style.display = "none";
-        startGame();
-        shareVariable();
-
-        let profile;
-        if (IsRankMatch && opponentUid) {
-            profile = await fetchOpponentByUid(opponentUid);
-        } else {
-            // フレンド対戦: peerID から逆引き
-            profile = await fetchOpponentByPeerID(conn.peer);
-            if (profile) opponentUid = profile.uid;   // 後でレート計算に使う
-        }
-        
-        if (profile) {
-            document.getElementById("opponentName").textContent = `名前：${profile.name}`;
-            document.getElementById("opponentRate").textContent = `レート：${profile.rate}`;
-            watchOpponentProfile(profile.uid);        // 変動をリアルタイム反映
-        }
+        startGame();          // ここで盤面生成
+        shareVariable();      // 山札や手札を同期
     });
 
     /*--- 受信データ ---*/
