@@ -2559,8 +2559,11 @@ async function RankMatch() {
             iAmCaller  = true;
             opponentUid = first.uid;
             console.log(first);
-            document.getElementById("opponentName").innerHTML = `${first.Name}`;
-            document.getElementById("opponentRate").innerHTML = `${first.Rate}`;
+            let snapshot = await firebase.database()
+                .ref(`players/${opponentUid}`)    // ← players ノード直下に uid をキーとして保存している想定
+                .once("value");           // 1 回だけ読む（リアルタイム監視しない）
+            document.getElementById("opponentName").innerHTML = `${snapshot.Name}`;
+            document.getElementById("opponentRate").innerHTML = `${snapshot.Rate}`;
 
             // キューを掃除（両エントリ削除）
             await queueRef.child(firstKey ).remove();
@@ -2571,8 +2574,11 @@ async function RankMatch() {
             iAmCaller  = false;
             opponentUid = second.uid;
             console.log(second);
-            document.getElementById("opponentName").innerHTML = `${second.Name}`;
-            document.getElementById("opponentRate").innerHTML = `${second.Rate}`;
+            let snapshot = await firebase.database()
+                .ref(`players/${opponentUid}`)    // ← players ノード直下に uid をキーとして保存している想定
+                .once("value");           // 1 回だけ読む（リアルタイム監視しない）
+            document.getElementById("opponentName").innerHTML = `${snapshot.Name}`;
+            document.getElementById("opponentRate").innerHTML = `${snapshot.Rate}`;
             // 待機側はキュー削除を caller にまかせる
         } else {
             // 自分は3人目以降。何もしない
