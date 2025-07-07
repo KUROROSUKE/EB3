@@ -2558,6 +2558,8 @@ async function RankMatch() {
             opponent   = first;
             iAmCaller  = true;
             opponentUid = first.uid;
+            document.getElementById("opponentName").innerHTML = `${first.Name}`;
+            document.getElementById("opponentRate").innerHTML = `${first.Rate}`;
 
             // キューを掃除（両エントリ削除）
             await queueRef.child(firstKey ).remove();
@@ -2567,6 +2569,8 @@ async function RankMatch() {
             opponent   = second;
             iAmCaller  = false;
             opponentUid = second.uid;
+            document.getElementById("opponentName").innerHTML = `${second.Name}`;
+            document.getElementById("opponentRate").innerHTML = `${second.Rate}`;
             // 待機側はキュー削除を caller にまかせる
         } else {
             // 自分は3人目以降。何もしない
