@@ -2539,7 +2539,7 @@ async function RankMatch() {
 
         const RankMatchButton = document.getElementById("RankMatchButton");
         RankMatchButton.innerHTML = "マッチング中...";
-        RankMatchButton.setAttribute("aria-disabled", "false");
+        RankMatchButton.setAttribute("aria-disabled", false);
         // エントリをタイムスタンプ昇順で並べ替え
         const entries = Object.entries(list)
                               .sort(([, a], [, b]) => a.ts - b.ts);
