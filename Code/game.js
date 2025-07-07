@@ -2558,6 +2558,7 @@ async function RankMatch() {
             opponent   = first;
             iAmCaller  = true;
             opponentUid = first.uid;
+            console.log(first);
             document.getElementById("opponentName").innerHTML = `${first.Name}`;
             document.getElementById("opponentRate").innerHTML = `${first.Rate}`;
 
@@ -2569,6 +2570,7 @@ async function RankMatch() {
             opponent   = second;
             iAmCaller  = false;
             opponentUid = second.uid;
+            console.log(second);
             document.getElementById("opponentName").innerHTML = `${second.Name}`;
             document.getElementById("opponentRate").innerHTML = `${second.Rate}`;
             // 待機側はキュー削除を caller にまかせる
