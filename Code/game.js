@@ -190,29 +190,6 @@ function loginWithMail() {
     });
 }
 
-async function fetchOpponentByPeerID(peerId) {
-  const snap = await database.ref("players")
-      .orderByChild("PeerID").equalTo(peerId)
-      .limitToFirst(1).once("value");
-  if (!snap.exists()) return null;
-  const [uid, data] = Object.entries(snap.val())[0];
-  return { uid, name: data.Name || "名無し", rate: data.Rate || 0 };
-}
-
-async function fetchOpponentByUid(uid) {
-  const snap = await database.ref(`players/${uid}`).once("value");
-  if (!snap.exists()) return null;
-  const data = snap.val();
-  return { uid, name: data.Name || "名無し", rate: data.Rate || 0 };
-}
-
-function watchOpponentProfile(uid) {                // リアルタイム更新したい場合
-  database.ref(`players/${uid}`).on("value", s => {
-    const d = s.val() || {};
-    document.getElementById("opponentName").textContent = `相手：${d.Name || "名無し"}`;
-    document.getElementById("opponentRate").textContent = `レート：${d.Rate ?? 0}`;
-  });
-}
 
 async function getAllNames() {
   const snapshot = await database.ref("players").once("value");
@@ -2609,10 +2586,9 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";
 
-        const opponentPeerId = opponent.peerID; // peer が必要なので保持
-        opponentUid = opponent.uid;             // Elo 用に uid も保持
-        conn = peer.connect(opponentPeerId, { reliable: true });
+        opponentUid = opponent.peerID;
         console.log(opponentUid);
+        conn = peer.connect(opponentUid, { reliable: true });
 
         conn.on('open', () => {
             // 相手を p2 に指定
