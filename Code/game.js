@@ -2326,10 +2326,6 @@ function setupConnection() {
             document.getElementById("opponentRate").textContent = `レート：${profile.rate}`;
             watchOpponentProfile(profile.uid);        // 変動をリアルタイム反映
         }
-
-        document.getElementById("PeerModal").style.display = "none";
-        startGame();          // ここで盤面生成
-        shareVariable();      // 山札や手札を同期
     });
 
     /*--- 受信データ ---*/
