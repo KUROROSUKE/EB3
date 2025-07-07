@@ -190,7 +190,6 @@ function loginWithMail() {
     });
 }
 
-
 async function getAllNames() {
   const snapshot = await database.ref("players").once("value");
   const users = await snapshot.val();
@@ -2115,8 +2114,6 @@ function startGame() {
     document.getElementById("p2_area").style.display = "block";
     document.getElementById("gameRuleButton").style.display = "none";
     document.getElementById("nextButton").textContent = "次のゲーム";
-    document.getElementById("opponentName").textContent = "";
-    document.getElementById("opponentRate").textContent = "";
     resetGame();
 }
 
@@ -2529,6 +2526,11 @@ async function RankMatch() {
 
     // ① 自分をキューに登録
     const queueRef = database.ref("rankQueue");
+    const myEntryRef = await queueRef.push({
+        uid    : user.uid,
+        peerID : peer.id,
+        ts     : firebase.database.ServerValue.TIMESTAMP   // 早押し順を決める
+    });
 
     // ② キューを監視
     queueRef.on("value", async (snap) => {
@@ -2539,7 +2541,8 @@ async function RankMatch() {
         RankMatchButton.innerHTML = "マッチング中...";
         RankMatchButton.setAttribute("aria-disabled", "false");
         // エントリをタイムスタンプ昇順で並べ替え
-        const entries = Object.entries(list).sort(([, a], [, b]) => a.ts - b.ts);
+        const entries = Object.entries(list)
+                              .sort(([, a], [, b]) => a.ts - b.ts);
 
         // まだ2人そろっていなければ待機続行
         if (entries.length < 2) return;
