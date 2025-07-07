@@ -2559,11 +2559,10 @@ async function RankMatch() {
             iAmCaller  = true;
             opponentUid = first.uid;
             console.log(first);
-            let snapshot = await firebase.database()
-                .ref(`players/${opponentUid}`)    // ← players ノード直下に uid をキーとして保存している想定
-                .once("value");           // 1 回だけ読む（リアルタイム監視しない）
-            document.getElementById("opponentName").innerHTML = `${snapshot.Name}`;
-            document.getElementById("opponentRate").innerHTML = `${snapshot.Rate}`;
+            let snapshot = await firebase.database().ref(`players/${opponentUid}`).once("value");
+            const { Name, Rate } = snapshot.val();
+            document.getElementById("opponentName").innerHTML = `${Name}`;
+            document.getElementById("opponentRate").innerHTML = `${Rate}`;
 
             // キューを掃除（両エントリ削除）
             await queueRef.child(firstKey ).remove();
@@ -2574,11 +2573,10 @@ async function RankMatch() {
             iAmCaller  = false;
             opponentUid = second.uid;
             console.log(second);
-            let snapshot = await firebase.database()
-                .ref(`players/${opponentUid}`)    // ← players ノード直下に uid をキーとして保存している想定
-                .once("value");           // 1 回だけ読む（リアルタイム監視しない）
-            document.getElementById("opponentName").innerHTML = `${snapshot.Name}`;
-            document.getElementById("opponentRate").innerHTML = `${snapshot.Rate}`;
+            let snapshot = await firebase.database().ref(`players/${opponentUid}`).once("value");
+            const { Name, Rate } = snapshot.val();
+            document.getElementById("opponentName").innerHTML = `${Name}`;
+            document.getElementById("opponentRate").innerHTML = `${Rate}`;
             // 待機側はキュー削除を caller にまかせる
         } else {
             // 自分は3人目以降。何もしない
