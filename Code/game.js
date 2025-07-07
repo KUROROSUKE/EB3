@@ -2540,6 +2540,7 @@ async function RankMatch() {
         const RankMatchButton = document.getElementById("RankMatchButton");
         RankMatchButton.innerHTML = "マッチング中...";
         RankMatchButton.setAttribute("aria-disabled", false);
+        RankMatchButton.disabled = true;
         // エントリをタイムスタンプ昇順で並べ替え
         const entries = Object.entries(list)
                               .sort(([, a], [, b]) => a.ts - b.ts);
@@ -2590,6 +2591,7 @@ async function RankMatch() {
         handShake(opponent, iAmCaller);
         RankMatchButton.innerHTML = "対戦";
         RankMatchButton.setAttribute("aria-disabled", "true");
+        RankMatchButton.disabled = false;
     });
 }
 function handShake(opponent, iAmCaller) {
