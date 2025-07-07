@@ -190,6 +190,30 @@ function loginWithMail() {
     });
 }
 
+async function fetchOpponentByPeerID(peerId) {
+  const snap = await database.ref("players")
+      .orderByChild("PeerID").equalTo(peerId)
+      .limitToFirst(1).once("value");
+  if (!snap.exists()) return null;
+  const [uid, data] = Object.entries(snap.val())[0];
+  return { uid, name: data.Name || "名無し", rate: data.Rate || 0 };
+}
+
+async function fetchOpponentByUid(uid) {
+  const snap = await database.ref(`players/${uid}`).once("value");
+  if (!snap.exists()) return null;
+  const data = snap.val();
+  return { uid, name: data.Name || "名無し", rate: data.Rate || 0 };
+}
+
+function watchOpponentProfile(uid) {                // リアルタイム更新したい場合
+  database.ref(`players/${uid}`).on("value", s => {
+    const d = s.val() || {};
+    document.getElementById("opponentName").textContent = `相手：${d.Name || "名無し"}`;
+    document.getElementById("opponentRate").textContent = `レート：${d.Rate ?? 0}`;
+  });
+}
+
 async function getAllNames() {
   const snapshot = await database.ref("players").once("value");
   const users = await snapshot.val();
@@ -2114,6 +2138,8 @@ function startGame() {
     document.getElementById("p2_area").style.display = "block";
     document.getElementById("gameRuleButton").style.display = "none";
     document.getElementById("nextButton").textContent = "次のゲーム";
+    document.getElementById("opponentName").textContent = "";
+    document.getElementById("opponentRate").textContent = "";
     resetGame();
 }
 
@@ -2278,12 +2304,27 @@ function connectToPeer() {
 /* connection を必ず受け取る形に変更 */
 function setupConnection() {
     /*--- DataConnection が open したら共通初期化 ---*/
-    conn.on('open', () => {
+    conn.on('open', async () => {
         GameType = "P2P";
+        if (MineTurn === "p1") conn.send({ type: "role", value: "p2" });
 
-        /*   caller 側だけ role を送る  */
-        if (MineTurn === "p1") {
-            conn.send({ type: "role", value: "p2" });
+        document.getElementById("PeerModal").style.display = "none";
+        startGame();
+        shareVariable();
+
+        let profile;
+        if (IsRankMatch && opponentUid) {
+            profile = await fetchOpponentByUid(opponentUid);
+        } else {
+            // フレンド対戦: peerID から逆引き
+            profile = await fetchOpponentByPeerID(conn.peer);
+            if (profile) opponentUid = profile.uid;   // 後でレート計算に使う
+        }
+        
+        if (profile) {
+            document.getElementById("opponentName").textContent = `名前：${profile.name}`;
+            document.getElementById("opponentRate").textContent = `レート：${profile.rate}`;
+            watchOpponentProfile(profile.uid);        // 変動をリアルタイム反映
         }
 
         document.getElementById("PeerModal").style.display = "none";
@@ -2526,11 +2567,6 @@ async function RankMatch() {
 
     // ① 自分をキューに登録
     const queueRef = database.ref("rankQueue");
-    const myEntryRef = await queueRef.push({
-        uid    : user.uid,
-        peerID : peer.id,
-        ts     : firebase.database.ServerValue.TIMESTAMP   // 早押し順を決める
-    });
 
     // ② キューを監視
     queueRef.on("value", async (snap) => {
@@ -2541,8 +2577,7 @@ async function RankMatch() {
         RankMatchButton.innerHTML = "マッチング中...";
         RankMatchButton.setAttribute("aria-disabled", "false");
         // エントリをタイムスタンプ昇順で並べ替え
-        const entries = Object.entries(list)
-                              .sort(([, a], [, b]) => a.ts - b.ts);
+        const entries = Object.entries(list).sort(([, a], [, b]) => a.ts - b.ts);
 
         // まだ2人そろっていなければ待機続行
         if (entries.length < 2) return;
@@ -2589,9 +2624,10 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";
 
-        opponentUid = opponent.peerID;
+        const opponentPeerId = opponent.peerID; // peer が必要なので保持
+        opponentUid = opponent.uid;             // Elo 用に uid も保持
+        conn = peer.connect(opponentPeerId, { reliable: true });
         console.log(opponentUid);
-        conn = peer.connect(opponentUid, { reliable: true });
 
         conn.on('open', () => {
             // 相手を p2 に指定

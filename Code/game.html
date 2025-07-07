@@ -167,6 +167,8 @@
         </div>
         <!--- ゲーム中のボタンとか表示 -->
         <div id="p1_area" style="display: none;">
+            <p id="opponentName" style="margin:4px 0;"></p>
+            <p id="opponentRate" style="margin:0;"></p>
             <p id="p1_point">ポイント：0</p>
             <p id="p1_explain"> </p>
             <div id="p1_hand"></div>
@@ -407,7 +409,7 @@
     <div id="userScreen" style="display:none;">
         <div id="LoginModal" style="display:none;">
             <div style="text-align:center;">
-                <p>認証を行うことでランクマッチ等の記録が可能です</p>
+                <p>ログインすることでランクマッチやレートの記録などが可能です</p>
                 <button onclick="loginWithGoogle()" id="GoogleLoginButton">Googleアカウント</button>
                 <button onclick="SignUpWithMail()" id="MailLoginButton" style="display:inline-block">メールで新規登録</button>
                 <button onclick="loginWithMail()" id="MailLoginButton" style="display:inline-block">メールでログイン</button>
