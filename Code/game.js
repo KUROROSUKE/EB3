@@ -3008,6 +3008,7 @@ async function checkQuest(madeMaterial, madePoint) {
         if (!current.completed && madeMaterial.b === current.target) {
             console.log(`✅ クエスト達成！: ${current.name}`);
             current.completed = true; // 達成済みにする
+            launchConfetti();
             currentQuestIndex++; // 次のクエストへ
             changeQuest(); // クエスト達成時に表示を更新
             saveQuestsStatus(); // クエストの状態を保存
@@ -3035,4 +3036,14 @@ async function checkQuest(madeMaterial, madePoint) {
 function toggleQuestModal() {
     const inGameContent = document.getElementById("inGameQuestContent");
     inGameContent.style.display==="block" ? inGameContent.style.display = "none" : inGameContent.style.display = "block";
+}
+
+function launchConfetti() {
+  if (typeof confetti === 'function') {
+    confetti({
+      particleCount: 160,   // 粒数
+      spread: 70,           // 拡散角
+      origin: { y: 0.6 }    // 発生位置（画面中央寄り）
+    });
+  }
 }

@@ -20,6 +20,7 @@
     <script src="https://www.gstatic.com/firebasejs/10.0.0/firebase-database-compat.js"></script>
     <script src="https://3dmol.org/build/3Dmol-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
     <script>
         window.MathJax = {
             tex: {
@@ -165,55 +166,57 @@
             <p id="Attention3" style="display: none;">ローカルモデルの読み込みに失敗しました</p>
             <p id="Attention4" style="display: none;">モデルとcompoundsが合いません。別のcompoundsまたはモデルにしてください。</p>
         </div>
-        <!--- ゲーム中のボタンとか表示 -->
-        <div id="p1_area" style="display: none;">
-            <p id="opponentName" style="margin:4px 0;"></p>
-            <p id="opponentRate" style="margin:0;"></p>
-            <p id="p1_point">ポイント：0</p>
-            <p id="p1_explain"> </p>
-            <div id="p1_hand"></div>
-        </div>
-        <div id="dropped_area_p1" class="drop_area" style="display: none;"></div>
-        <hr style="border: 2px solid black; width:95%;display:none" id="centerLine">
-        <div id="dropped_area_p2" class="drop_area" style="display: none;"></div>
-        <div id="p2_area" style="display: none;">
-            <div id="p2_hand"></div>
-            <p id="p2_point">ポイント：0</p>
-            <p id="p2_explain"> </p>
-            <p id="predictResult"> </p>
-            <button class="buttons" id="generate_button">精製</button>
-            <button class="buttons" id="done_button">この役でアガる</button>
-            <button class="buttons" id="nextButton"></button>
-            <button class="buttons" id="ron_button">融合</button>
-            <button class="buttons" id="hint_button">ヒント</button>
-        </div>
-        <!--- ヒント表示 -->
-        <div id="hintContainer" style="display: none;">
-            <h3>ヒント</h3>
-            <table id="hintTable">
-                <thead>
-                    <tr>
-                        <th>名前</th>
-                        <th>組成式</th>
-                        <th>ポイント</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-        <!--- AI予測表示 -->
-        <div id="predictResultContainer">
-            <h3>予測結果</h3>
-            <table id="predictTable">
-                <thead>
-                    <tr>
-                        <th>順位</th>
-                        <th>名前</th>
-                        <th>確率</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
+        <div class="game-wrapper">
+            <!--- ゲーム中のボタンとか表示 -->
+            <div id="p1_area" style="display: none;">
+                <p id="opponentName" style="margin:4px 0;"></p>
+                <p id="opponentRate" style="margin:0;"></p>
+                <p id="p1_point">ポイント：0</p>
+                <p id="p1_explain"> </p>
+                <div id="p1_hand"></div>
+            </div>
+            <div id="dropped_area_p1" class="drop_area" style="display: none;"></div>
+            <hr style="border: 2px solid black; width:95%;display:none" id="centerLine">
+            <div id="dropped_area_p2" class="drop_area" style="display: none;"></div>
+            <div id="p2_area" style="display: none;">
+                <div id="p2_hand"></div>
+                <p id="p2_point">ポイント：0</p>
+                <p id="p2_explain"> </p>
+                <p id="predictResult"> </p>
+                <button class="buttons" id="generate_button">精製</button>
+                <button class="buttons" id="done_button">この役でアガる</button>
+                <button class="buttons" id="nextButton"></button>
+                <button class="buttons" id="ron_button">融合</button>
+                <button class="buttons" id="hint_button">ヒント</button>
+            </div>
+            <!--- ヒント表示 -->
+            <div id="hintContainer" style="display: none;">
+                <h3>ヒント</h3>
+                <table id="hintTable">
+                    <thead>
+                        <tr>
+                            <th>名前</th>
+                            <th>組成式</th>
+                            <th>ポイント</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            <!--- AI予測表示 -->
+            <div id="predictResultContainer">
+                <h3>予測結果</h3>
+                <table id="predictTable">
+                    <thead>
+                        <tr>
+                            <th>順位</th>
+                            <th>名前</th>
+                            <th>確率</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
         </div>
         <!-- PeerID表示 & 接続モーダル -->
         <div id="PeerModal" style="display:none;">
@@ -244,6 +247,14 @@
                     <p>精製：自分の手札だけを使ってアガる事<br>融合：相手が最後に捨てたカードも使ってアガる事</p>
                 </div>
                 <a href="https://kurorosuke.github.io/EB3/GameExplain/GameRules.html">詳しいルール</a>
+            </div>
+        </div>
+        <div id="inGameQuest" style="display:none;">
+            <button id="toggleQuestButton" onclick="toggleQuestModal()">クエスト表示/非表示</button>
+            <div id="inGameQuestContent" style="display:block">
+                <h4>現在のクエスト</h4>
+                <p id="currentQuestName"></p>
+                <p id="currentQuestTarget"></p>
             </div>
         </div>
     </div>
@@ -440,14 +451,6 @@
         <div id="questList"></div>
     </div>
 
-    <div id="inGameQuest" style="display:none;">
-        <button id="toggleQuestButton" onclick="toggleQuestModal()">クエスト表示/非表示</button>
-        <div id="inGameQuestContent" style="display:block">
-            <h4>現在のクエスト</h4>
-            <p id="currentQuestName"></p>
-            <p id="currentQuestTarget"></p>
-        </div>
-    </div>
 
     <div id="overlay"></div>
     </div>

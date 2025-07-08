@@ -33,10 +33,9 @@
 #ron_button {
     display: none;
 }
-.drop_area {
-    left:10%;
-    position:relative;
-    width: 80%;
+.drop_area{
+  width: 100%;
+  margin: 4px 0;
 }
 .drop_area img {
     width:calc(100% / 25)
@@ -300,12 +299,10 @@
 #predictResultContainer {
     display: none;
     text-align: center;
-    padding: 20px;
     background-color: rgba(255, 255, 255, 0.9);
 }
 #hintContainer {
     text-align: center;
-    padding: 20px;
     background-color: rgba(255, 255, 255, 0.9);
     margin-top: 10px;
 }
@@ -592,4 +589,13 @@ input[type="number"]{
   text-align:center;
   line-height:24px;
   transition:width .4s ease;
+}
+
+.game-wrapper{
+  position: relative;          /* ビューポート基準 */
+  text-align: center;
+  top: 30vh;                /* 画面高の真ん中に基準点を置く */
+  left: 50%;                /* 横も中央 */
+  transform: translate(-50%, -30%);   /* 自分自身の 50% ずつ逆方向へ戻す */
+  width: 100vw;
 }
