@@ -1143,7 +1143,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
 
     // クエスト達成をチェック (CPU戦かつプレイヤーの行動時)
     if (who === "p2") {
-        await checkQuest(p2_make_material, p2_point);
+        await checkQuest(p2_make_material, thisGame_p2_point);
     }
 
     //モデルを学習
@@ -2877,8 +2877,8 @@ document.getElementById('dictSort').addEventListener('change', e => {
 
 
 const quests = [
-    { id: 1, name: "水を合成せよ", type:"create", target: "H₂O", completed: false, award: 50 },
-    { id: 2, name: "25ポイント以上の物質を合成せよ", type:"point", targetPoint: 25, completed: false, award: 50 },
+    { id: 1, name: "水を合成せよ" , type:"create", target: "H₂O", completed: false, award: 50 },
+    { id: 2, name: "25ポイント以上の物質を合成せよ" , type:"point", targetPoint: 25, completed: false, award: 50 },
     { id: 3, name: "アセチレンを合成せよ", type: "create", target: "C₂H₂", completed: false, award: 50 },
     { id: 4, name: "オゾンを合成せよ", type: "create", target: "O₃", completed: false, award: 50 },
     { id: 5, name: "酸化ベリリウムを合成せよ", type: "create", target: "BeO", completed: false, award: 50 },
@@ -2902,7 +2902,7 @@ const quests = [
     { id: 23, name: "リン酸を合成せよ", type: "create", target: "H₃PO₄", completed: false, award: 200 },
     { id: 24, name: "80ポイント以上の物質を合成せよ", type: "point", targetPoint: 80, completed: false, award: 150 },
     { id: 25, name: "シュウ酸を合成せよ", type: "create", target: "O₃", completed: false, award: 250 },
-    { id: 26, name: "100ポイント以上の物質を合成せよ", type: "point", targetPoint: 100, completed: false, award: 200 },
+    { id: 26, name: "1ゲームで合計100ポイント以上を得よ", type: "total_point", targetPoint: 100, completed: false, award: 200 },
     { id: 27, name: "メタンを合成せよ", type: "create", target: "CH₄", completed: false, award: 80 },
     { id: 28, name: "ホルムアルデヒドを合成せよ", type: "create", target: "CH₂O", completed: false, award: 80 },
     { id: 29, name: "メタノールを合成せよ", type: "create", target: "CH₃OH", completed: false, award: 80 },
@@ -2911,7 +2911,7 @@ const quests = [
     { id: 32, name: "チオシアン酸アンモニウムを合成せよ", type: "create", target: "NH₄SCN", completed: false, award: 170 },
     { id: 33, name: "チオ硫酸ナトリウムを合成せよ", type: "create", target: "Na₂S₂O₃", completed: false, award: 200 },
     { id: 34, name: "リン酸二水素ナトリウムを合成せよ", type: "create", target: "NaH₂PO₄", completed: false, award: 180 },
-    { id: 35, name: "120ポイント以上の物質を合成せよ", type: "point", targetPoint: 120, completed: false, award: 250 },
+    { id: 35, name: "1ゲームで合計120ポイント以上を得よ", type: "total_point", targetPoint: 120, completed: false, award: 250 },
     { id: 36, name: "ホウ酸を合成せよ", type: "create", target: "H₃BO₃", completed: false, award: 130 },
     { id: 37, name: "ヨウ素酸カリウムを合成せよ", type: "create", target: "KIO₄", completed: false, award: 130 },
     { id: 38, name: "リン酸水素ナトリウムを合成せよ", type: "create", target: "Na₂HPO₄", completed: false, award: 180 },
@@ -3014,6 +3014,15 @@ async function checkQuest(madeMaterial, madePoint) {
             saveQuestsStatus(); // クエストの状態を保存
         }
     } else if (current.type === 'point') {
+        if (!current.completed && madePoint >= current.targetPoint) { // pointタイプの場合はmadePointを比較
+            console.log(`✅ クエスト達成！: ${current.name}`);
+            current.completed = true; // 達成済みにする
+            launchConfetti();
+            currentQuestIndex++; // 次のクエストへ
+            changeQuest(); // クエスト達成時に表示を更新
+            saveQuestsStatus(); // クエストの状態を保存
+        }
+    } else if (current.type === 'total_point') {
         if (!current.completed && madePoint >= current.targetPoint) { // pointタイプの場合はmadePointを比較
             console.log(`✅ クエスト達成！: ${current.name}`);
             current.completed = true; // 達成済みにする
