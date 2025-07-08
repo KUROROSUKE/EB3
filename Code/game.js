@@ -2902,7 +2902,7 @@ const quests = [
     { id: 23, name: "リン酸を合成せよ", type: "create", target: "H₃PO₄", completed: false, award: 200 },
     { id: 24, name: "80ポイント以上の物質を合成せよ", type: "point", targetPoint: 80, completed: false, award: 150 },
     { id: 25, name: "シュウ酸を合成せよ", type: "create", target: "O₃", completed: false, award: 250 },
-    { id: 26, name: "1ゲームで合計100ポイント以上を得よ", type: "total_point", targetPoint: 100, completed: false, award: 200 },
+    { id: 26, name: "1ラウンドで合計100ポイント以上を得よ", type: "total_point", targetPoint: 100, completed: false, award: 200 },
     { id: 27, name: "メタンを合成せよ", type: "create", target: "CH₄", completed: false, award: 80 },
     { id: 28, name: "ホルムアルデヒドを合成せよ", type: "create", target: "CH₂O", completed: false, award: 80 },
     { id: 29, name: "メタノールを合成せよ", type: "create", target: "CH₃OH", completed: false, award: 80 },
@@ -2911,7 +2911,7 @@ const quests = [
     { id: 32, name: "チオシアン酸アンモニウムを合成せよ", type: "create", target: "NH₄SCN", completed: false, award: 170 },
     { id: 33, name: "チオ硫酸ナトリウムを合成せよ", type: "create", target: "Na₂S₂O₃", completed: false, award: 200 },
     { id: 34, name: "リン酸二水素ナトリウムを合成せよ", type: "create", target: "NaH₂PO₄", completed: false, award: 180 },
-    { id: 35, name: "1ゲームで合計120ポイント以上を得よ", type: "total_point", targetPoint: 120, completed: false, award: 250 },
+    { id: 35, name: "1ラウンドで合計120ポイント以上を得よ", type: "total_point", targetPoint: 120, completed: false, award: 250 },
     { id: 36, name: "ホウ酸を合成せよ", type: "create", target: "H₃BO₃", completed: false, award: 130 },
     { id: 37, name: "ヨウ素酸カリウムを合成せよ", type: "create", target: "KIO₄", completed: false, award: 130 },
     { id: 38, name: "リン酸水素ナトリウムを合成せよ", type: "create", target: "Na₂HPO₄", completed: false, award: 180 },
@@ -2942,6 +2942,8 @@ function changeQuest() {
             currentQuestTarget.textContent = `目標: ${current.target} を合成`;
         } else if (current.type === 'point') {
             currentQuestTarget.textContent = `目標: ${current.targetPoint} ポイント獲得`;
+        }else if (current.type === 'total_point') {
+            currentQuestTarget.textContent = `目標: 1ラウンドで${current.targetPoint} ポイント獲得`;
         }
 
     } else {
