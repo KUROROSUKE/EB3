@@ -3017,6 +3017,7 @@ async function checkQuest(madeMaterial, madePoint) {
         if (!current.completed && madePoint >= current.targetPoint) { // pointタイプの場合はmadePointを比較
             console.log(`✅ クエスト達成！: ${current.name}`);
             current.completed = true; // 達成済みにする
+            launchConfetti();
             currentQuestIndex++; // 次のクエストへ
             changeQuest(); // クエスト達成時に表示を更新
             saveQuestsStatus(); // クエストの状態を保存
