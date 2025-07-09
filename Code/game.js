@@ -620,7 +620,7 @@ async function runModel(who,madeMaterialNum) {
     if (predictedClass<=materials.length) {        
         // 結果を表示
         console.log(`推論結果: クラス ${predictedClass}, 信頼度: ${confidence}`);
-        document.getElementById("predictResult").innerHTML = `予測結果：${materials[predictedClass].a}・信頼度：${confidence}`;
+        //document.getElementById("predictResult").innerHTML = `予測結果：${materials[predictedClass].a}・信頼度：${confidence}`;
     };
 }
 // save trained AI model on indexedDB
@@ -948,32 +948,52 @@ async function view_p2_hand() {
         area.appendChild(image);
     })
 }
+async function tmp() {
+    const newButton = document.getElementById("done_button");
+    newButton.addEventListener("click", async function () {
+        newButton.style.display = "none";
+        p2_make_material = await search(arrayToObj(p2_selected_card));
+        console.log("this is p2_make()");
+        if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
+        return p2_make_material;
+    });
+}
 // make p2's material when done()
 async function p2_make() {
-    // ボタンの表示を変更
     time = "make";
 
+    // ボタン表示だけ切り替え
     document.getElementById("generate_button").style.display = "none";
     document.getElementById("hintContainer").style.display = "none";
-    document.getElementById("hint_button").style.display = "none";
+    document.getElementById("hint_button").style.display   = "none";
+
     const button = document.getElementById("done_button");
     button.style.display = "inline";
 
-    // 以前のイベントリスナーを削除
-    button.replaceWith(button.cloneNode(true));
-    const newButton = document.getElementById("done_button");
+    /* 1. 以前のハンドラを外す（あれば） */
+    if (button._handler) {
+        button.removeEventListener("click", button._handler);
+    }
 
-    // ボタンクリックを待機
-    return new Promise((resolve) => {
-        newButton.addEventListener("click", async function () {
-            document.getElementById("done_button").style.display = "none";
+    /* 2. Promise を返す */
+    return new Promise(resolve => {
+
+        /* 3. 新しいハンドラを定義 & 1 回だけ登録 */
+        button._handler = async () => {
+            button.style.display = "none";
+
+            // カード → 化合物
             p2_make_material = await search(arrayToObj(p2_selected_card));
-            resolve(p2_make_material);
-            console.log("this is p2_make()");
-            if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
-        });
+
+            if (GameType === "P2P") finishSelect();  // 必要ならコール
+
+            resolve(p2_make_material);               // ここで Promise 完了
+        };
+
+        button.addEventListener("click", button._handler, { once: true });
     });
 }
+
 // create p2.
 document.getElementById("generate_button").addEventListener("click", async function () {
     if (turn == MineTurn) {
@@ -1092,7 +1112,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     document.getElementById("hint_button").style.display = "none";
     document.getElementById("hintContainer").style.display = "none";
 
-    await p2_make();
+    const p2_make_material = await p2_make();           // 戻り値を捕まえる
     let predictedMaterialP2 = await runModel(who=="p1" ? 0:1, p2_make_material.f);
     const p1_make_material = p1_ron ? ronMaterial : await p1_make(predictedMaterialP2);
     console.log(p1_make_material);
@@ -1178,6 +1198,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
         numTurn += 1;
         button.textContent = "次のゲーム";
         button.addEventListener("click", function () {
+            //localStorage.setItem('tutorialSeen', 'true');
             document.getElementById("predictResultContainer").style.display = "none";
             resetGame();
             button.style.display = "none"
@@ -2086,11 +2107,108 @@ function resetGame() {
     view_p2_hand();
     document.getElementById("hint_button").style.display = "inline";
 
-    //もし最初、自分のターンじゃないなら相手から実行
     if (turn !== MineTurn && GameType=="CPU") {
+        //もし最初、自分のターンじゃないなら相手から実行
         setTimeout(() => p1_action(), 500);
-    };
+    }
+
+    if (!localStorage.getItem('tutorialSeen')) {
+        setTimeout(startTutorial, 800); // 0.5 秒だけ描画待ち
+    }
 }
+
+function waitUntilVisible(elem, callback, interval = 50) {
+  const timer = setInterval(() => {
+    const style = window.getComputedStyle(elem);
+    if (style.display !== 'none' && style.visibility !== 'hidden') {
+      clearInterval(timer);
+      callback();
+    }
+  }, interval);
+}
+function startTutorial() {
+    const intro = introJs();
+
+    intro.setOptions({
+        nextLabel: '次へ',
+        prevLabel: '戻る',
+        doneLabel: '閉じる',
+        exitOnOverlayClick: false,
+        disableInteraction: false,
+        showButtons:false,
+        steps: [
+        {
+            // 手札
+            element: '#p2_hand',
+            intro: 'ここがあなたの手札です。<br>交換したいカードをタップしてみましょう！'
+        },
+        {
+            // 精製
+            element: '#generate_button',
+            intro: '「精製」を押して化合物をつくるターンに入ります。'
+        },
+        {
+            // 精製
+            element: '#p2_hand',
+            intro: '化合物に必要なカードを選択します。'
+        },
+        {
+            // アガり
+            element: '#done_button',
+            intro: '化合物が選択したら<br>「この役でアガる」で勝負！'
+        },
+        {
+            // AI予測
+            element: '#predictTable',
+            intro: '相手の「あなたが何を作ろうとしていたかの予測」がここに出ます。'
+        },
+        {
+            // AI予測
+            element: '.information',
+            intro: 'あなたがどれだけのポイントが得られたか、何を作ったかの情報がでます'
+        },
+        {
+            // 次のゲーム
+            element: '#nextButton',
+            intro: 'ゲームが終了したら次のゲームに行きましょう。同じことを繰り返します。<br>詳しいルールは、ホーム画面の「ゲームルール」から見てください'
+        }
+        ]
+    });
+
+    intro.onafterchange(el => {
+        /* 手札 or アガり */
+        if (el.id === 'p2_hand' || el.id === 'done_button') {
+            el.addEventListener('click',
+            () => setTimeout(() => intro.nextStep(), 500),
+            { once: true }
+            );
+
+        /* 精製ボタン */
+        } else if (el.id === 'generate_button') {
+            el.addEventListener('click', () => {
+            const doneBtn = document.getElementById('done_button');
+            waitUntilVisible(doneBtn, () => intro.nextStep());
+            }, { once: true });
+
+        /* 予測テーブル or 情報エリア（複数可）*/
+        } else if (el.matches('#predictTable, .information, #p2_area')) {
+            el.addEventListener('click', () => intro.nextStep(), { once: true });
+
+        /* 次のゲームボタン */
+        } else if (el.id === 'nextButton') {
+            localStorage.setItem('tutorialSeen', 'true');
+            el.addEventListener('click', () => intro.nextStep(), { once: true });
+        }
+    });
+
+
+    // 二度目以降はスキップ
+    intro.oncomplete(() => localStorage.setItem('tutorialSeen', 'true'));
+    intro.onexit(()   => localStorage.setItem('tutorialSeen', 'true'));
+
+    intro.start();
+}
+
 // return to screen
 function returnToStartScreen() {
     document.getElementById("startScreen").style.display = "flex";
@@ -2207,6 +2325,7 @@ async function winnerAndChangeButton() {
         // クリック時の処理を async 化する
         button.addEventListener("click", async function () {
             // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
+            //localStorage.setItem('tutorialSeen', 'true');
             is_ok_p2 = true;
             nextIsOK()
             button.style.display = "none";

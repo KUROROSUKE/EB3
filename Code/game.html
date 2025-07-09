@@ -21,6 +21,8 @@
     <script src="https://3dmol.org/build/3Dmol-min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intro.js/minified/introjs.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/intro.js/minified/intro.min.js" defer></script>
     <script>
         window.MathJax = {
             tex: {
@@ -180,11 +182,13 @@
             <div id="dropped_area_p2" class="drop_area" style="display: none;"></div>
             <div id="p2_area" style="display: none;">
                 <div id="p2_hand"></div>
-                <p id="p2_point">ポイント：0</p>
-                <p id="p2_explain"> </p>
+                <div class="information">
+                    <p id="p2_point">ポイント：0</p>
+                    <p id="p2_explain"> </p>
+                </div>
                 <p id="predictResult"> </p>
                 <button class="buttons" id="generate_button">精製</button>
-                <button class="buttons" id="done_button">この役でアガる</button>
+                <button class="buttons" id="done_button" onclick="tmp()">この役でアガる</button>
                 <button class="buttons" id="nextButton"></button>
                 <button class="buttons" id="ron_button">融合</button>
                 <button class="buttons" id="hint_button">ヒント</button>
