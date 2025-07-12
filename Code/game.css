@@ -584,42 +584,21 @@ input[type="number"]{
 }
 
 .progress-bar{
-  height:100%;
-  width:0;
-  background:#4caf50;      /* 好みで色変更可 */
-  color:#fff;
-  font-weight:bold;
-  text-align:center;
-  line-height:24px;
-  transition:width .4s ease;
+    height:100%;
+    width:0;
+    background:#4caf50;      /* 好みで色変更可 */
+    color:#fff;
+    font-weight:bold;
+    text-align:center;
+    line-height:24px;
+    transition:width .4s ease;
 }
 
 .game-wrapper{
-  position: relative;          /* ビューポート基準 */
-  text-align: center;
-  top: 30vh;                /* 画面高の真ん中に基準点を置く */
-  left: 50%;                /* 横も中央 */
-  transform: translate(-50%, -30%);   /* 自分自身の 50% ずつ逆方向へ戻す */
-  width: 100vw;
-}
-.introjs-overlay {
-  pointer-events: none !important; /* オーバーレイを無効化 */
-    display: none;
-}
-.introjs-helperLayer {
-    color: transparent;
-    pointer-events: none;
-}
-.introjs-tooltip {
-    color: #f00;
-}
-/* game.css など Intro.js を読み込んだ後に書く */
-.introjs-tooltip {
-  background-color: #fffae6 !important; /* 好きな色に変更 */
-  color: #333;                          /* 文字色も合わせて調整 */
-}
-
-/* 画面全体を暗くするオーバーレイの色を変えたい場合 */
-.introjs-overlay {
-  background: rgba(0,0,0,0.4) !important;  /* デフォルトは 0.3 */
+    position: relative;          /* ビューポート基準 */
+    text-align: center;
+    top: 30vh;                /* 画面高の真ん中に基準点を置く */
+    left: 50%;                /* 横も中央 */
+    transform: translate(-50%, -30%);   /* 自分自身の 50% ずつ逆方向へ戻す */
+    width: 100vw;
 }

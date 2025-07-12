@@ -902,6 +902,7 @@ async function view_p2_hand() {
         image.style.border = "1px solid #000";
         image.classList.add("selected");
         image.classList.toggle("selected");
+        image.classList.add("p2_card");
         image.addEventListener("click", function() {
             const button = document.getElementById("ron_button");
             button.style.display = "none";
@@ -924,6 +925,7 @@ async function view_p2_hand() {
                 this.classList.remove("selected");
                 this.classList.add("selected");
                 this.classList.toggle("selected");
+                this.classList.add("p2_card");
                 let newElem = drawCard();
                 const newBlob = imageCache[elementToNumber[newElem]];
                 this.src = URL.createObjectURL(newBlob);
@@ -2111,102 +2113,6 @@ function resetGame() {
         //もし最初、自分のターンじゃないなら相手から実行
         setTimeout(() => p1_action(), 500);
     }
-
-    if (!localStorage.getItem('tutorialSeen')) {
-        setTimeout(startTutorial, 800); // 0.5 秒だけ描画待ち
-    }
-}
-
-function waitUntilVisible(elem, callback, interval = 50) {
-  const timer = setInterval(() => {
-    const style = window.getComputedStyle(elem);
-    if (style.display !== 'none' && style.visibility !== 'hidden') {
-      clearInterval(timer);
-      callback();
-    }
-  }, interval);
-}
-function startTutorial() {
-    const intro = introJs();
-
-    intro.setOptions({
-        nextLabel: '次へ',
-        prevLabel: '戻る',
-        doneLabel: '閉じる',
-        exitOnOverlayClick: false,
-        disableInteraction: false,
-        showButtons:false,
-        steps: [
-        {
-            // 手札
-            element: '#p2_hand',
-            intro: 'ここがあなたの手札です。<br>交換したいカードをタップしてみましょう！'
-        },
-        {
-            // 精製
-            element: '#generate_button',
-            intro: '「精製」を押して化合物をつくるターンに入ります。'
-        },
-        {
-            // 精製
-            element: '#p2_hand',
-            intro: '化合物に必要なカードを選択します。'
-        },
-        {
-            // アガり
-            element: '#done_button',
-            intro: '化合物が選択したら<br>「この役でアガる」で勝負！'
-        },
-        {
-            // AI予測
-            element: '#predictTable',
-            intro: '相手の「あなたが何を作ろうとしていたかの予測」がここに出ます。'
-        },
-        {
-            // AI予測
-            element: '.information',
-            intro: 'あなたがどれだけのポイントが得られたか、何を作ったかの情報がでます'
-        },
-        {
-            // 次のゲーム
-            element: '#nextButton',
-            intro: 'ゲームが終了したら次のゲームに行きましょう。同じことを繰り返します。<br>詳しいルールは、ホーム画面の「ゲームルール」から見てください'
-        }
-        ]
-    });
-
-    intro.onafterchange(el => {
-        /* 手札 or アガり */
-        if (el.id === 'p2_hand' || el.id === 'done_button') {
-            el.addEventListener('click',
-            () => setTimeout(() => intro.nextStep(), 500),
-            { once: true }
-            );
-
-        /* 精製ボタン */
-        } else if (el.id === 'generate_button') {
-            el.addEventListener('click', () => {
-            const doneBtn = document.getElementById('done_button');
-            waitUntilVisible(doneBtn, () => intro.nextStep());
-            }, { once: true });
-
-        /* 予測テーブル or 情報エリア（複数可）*/
-        } else if (el.matches('#predictTable, .information, #p2_area')) {
-            el.addEventListener('click', () => intro.nextStep(), { once: true });
-
-        /* 次のゲームボタン */
-        } else if (el.id === 'nextButton') {
-            localStorage.setItem('tutorialSeen', 'true');
-            el.addEventListener('click', () => intro.nextStep(), { once: true });
-        }
-    });
-
-
-    // 二度目以降はスキップ
-    intro.oncomplete(() => localStorage.setItem('tutorialSeen', 'true'));
-    intro.onexit(()   => localStorage.setItem('tutorialSeen', 'true'));
-
-    intro.start();
 }
 
 // return to screen
