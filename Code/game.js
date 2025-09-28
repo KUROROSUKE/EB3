@@ -445,36 +445,72 @@ document.getElementById("startButton").addEventListener("click", function() {
 });
 // reset game state
 // 置換: resetGame
+// 置換: resetGame
 function resetGame() {
-    document.getElementById("bottomNav").style.display = "none";
-    p1_hand = [];
-    p2_hand = [];
-    dropped_cards_p1 = [];
-    dropped_cards_p2 = [];
-    p1_selected_card = [];
-    p2_selected_card = [];
-    time = "game";
-    
-    if (GameType=="P2P") {
-        if (MineTurn=="p1") {
-            turn = Math.random() <= 0.5 ? "p1" : "p2";
-            console.log(`random turn :: ${turn}`)
-            changeTurn(turn);
-        }
-        // ターン開始時にポイント送信フラグをリセット
-        if (conn) conn._sentForTurn = false;
-    } else {
-        turn = Math.random() <= 0.5 ? "p1" : "p2";
-        document.getElementById("generate_button").style.display = "inline";
-    }
-    p1_finish_select = true;
-    p2_finish_select = true;
+  document.getElementById("bottomNav").style.display = "none";
+  p1_hand = [];
+  p2_hand = [];
+  dropped_cards_p1 = [];
+  dropped_cards_p2 = [];
+  p1_selected_card = [];
+  p2_selected_card = [];
+  time = "game";
 
-    document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
-    document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
-    document.getElementById("p2_explain").innerHTML = " ";
-    document.getElementById("p1_explain").innerHTML = " ";
+  // ★ P2P重複防止フラグを初期化
+  if (typeof conn !== "undefined" && conn) {
+    conn._lastPointsJSON = null;   // 受信側デデュープ
+    conn._sentForTurn = false;     // 送信側(使っている場合)
+  }
+
+  if (GameType == "P2P") {
+    if (MineTurn == "p1") {
+      turn = Math.random() <= 0.5 ? "p1" : "p2";
+      console.log(`random turn :: ${turn}`);
+      changeTurn(turn);
+    }
+  } else {
+    turn = Math.random() <= 0.5 ? "p1" : "p2";
+    document.getElementById("generate_button").style.display = "inline";
+  }
+
+  p1_finish_select = true;
+  p2_finish_select = true;
+
+  document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
+  document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
+  document.getElementById("p2_explain").innerHTML = " ";
+  document.getElementById("predictResult").innerHTML = " ";
+  const ExplainArea = document.getElementById("p1_explain");
+  ExplainArea.innerHTML = " ";
+  ExplainArea.style.color = "black";
+  ExplainArea.style.fontSize = "16px";
+
+  document.getElementById("done_button").style.display = "none";
+  document.getElementById("nextButton").style.display = "none";
+
+  deck = [...elements, ...elements]; // 既存処理そのまま
+  deck = shuffle(deck);
+
+  const p1_hand_element = document.getElementById("p1_hand");
+  const p2_hand_element = document.getElementById("p2_hand");
+  p1_hand_element.innerHTML = "";
+  p2_hand_element.innerHTML = "";
+
+  const dropped_area_p1_element = document.getElementById("dropped_area_p1");
+  const dropped_area_p2_element = document.getElementById("dropped_area_p2");
+  dropped_area_p1_element.innerHTML = "";
+  dropped_area_p2_element.innerHTML = "";
+
+  random_hand();
+  view_p1_hand();
+  view_p2_hand();
+  document.getElementById("hint_button").style.display = "inline";
+
+  if (turn !== MineTurn && GameType == "CPU") {
+    setTimeout(() => p1_action(), 500);
+  }
 }
+
 
 // return to screen
 function returnToStartScreen() {
