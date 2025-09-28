@@ -698,65 +698,90 @@ async function showDown() {
 // --------- p2's actions ---------
 // view p2_hand and card operations processing
 // TODO: CPU対戦とP2P対戦のときの条件分岐をもうちょっと考える
-async function view_p2_hand() {
-    const area = document.getElementById('p2_hand');
-    p2_hand.forEach((elem, index) => {
-        const blob = imageCache[elementToNumber[elem]];
-        const image = new Image();
-        image.src = URL.createObjectURL(blob);
-        image.alt = elem;
-        image.style.padding = "5px";
-        image.style.border = "1px solid #000";
-        image.classList.add("selected");
-        image.classList.toggle("selected");
-        image.classList.add("p2_card");
-        image.addEventListener("click", function() {
-            const button = document.getElementById("ron_button");
-            button.style.display = "none";
-            if (time == "make") {
-                this.classList.toggle("selected");
-                if (this.classList.contains("selected")){
-                    p2_selected_card.push(this.alt);
-                } else {
-                    p2_selected_card.splice(p2_selected_card.indexOf(this.alt),1);
-                };
-            };
-            if (turn == MineTurn && time == "game") {
-                dropped_cards_p2.push(this.alt);
-                const blob = imageCache[elementToNumber[this.alt]];
-                const img = new Image();
-                img.src = URL.createObjectURL(blob);
-                img.alt = this.alt;
-                img.style.border = "1px solid #000";
-                document.getElementById("dropped_area_p2").appendChild(img);
-                this.classList.remove("selected");
-                this.classList.add("selected");
-                this.classList.toggle("selected");
-                this.classList.add("p2_card");
-                let newElem = drawCard();
-                const newBlob = imageCache[elementToNumber[newElem]];
-                this.src = URL.createObjectURL(newBlob);
-                this.alt = newElem;
-                this.style.padding = "5px";
-                this.style.border = "1px solid #000";
-                p2_hand[index] = newElem;
-                if (GameType == "CPU") {
-                    turn = "p1";
-                    if (document.getElementById("hintContainer").style.display != 'none') {
-                        document.getElementById("hint_button").click();
-                    };
-                    const dropCard = img.alt;
-                    setTimeout(() => {checkRon(dropCard)},500);
-                } else {
-                    turn = (turn == "p2") ? "p1" : "p2";
-                    changeTurn(turn);
-                    shareAction(action="exchange",otherData=img.alt);
-                };
-            };
-        })
-        area.appendChild(image);
-    })
+// p2手札の描画とクリック挙動（捨て札はappendToDiscardに集約）
+function view_p2_hand() {
+  const area = document.getElementById('p2_hand');
+  area.innerHTML = '';
+  p2_hand.forEach((elem, index) => {
+    const blob = imageCache[elementToNumber[elem]];
+    if (!blob) return;
+    const image = new Image();
+    image.src = URL.createObjectURL(blob);
+    image.alt = elem;
+    image.style.padding = "5px";
+    image.style.border = "1px solid #000";
+    image.classList.add("selected");
+    image.classList.toggle("selected");
+    image.classList.add("p2_card");
+
+    image.addEventListener("click", function () {
+      const ronBtn = document.getElementById("ron_button");
+      if (ronBtn) ronBtn.style.display = "none";
+
+      // 手札選択フェーズ
+      if (time === "make") {
+        this.classList.toggle("selected");
+        if (this.classList.contains("selected")) {
+          if (!p2_selected_card.includes(this.alt)) p2_selected_card.push(this.alt);
+        } else {
+          const i = p2_selected_card.indexOf(this.alt);
+          if (i !== -1) p2_selected_card.splice(i, 1);
+        }
+        return;
+      }
+
+      // ゲーム中の手番でのみ捨て札可能
+      if (time === "game" && turn === MineTurn) {
+        const dropCard = this.alt;
+
+        // 捨て札の描画と配列更新（ローカル視点）
+        appendToDiscard(MineTurn, dropCard);
+
+        // ビジュアル状態更新
+        this.classList.remove("selected");
+        this.classList.add("selected"); // 元の挙動を踏襲
+        this.classList.toggle("selected");
+        this.classList.add("p2_card");
+
+        // 山から補充
+        const newElem = drawCard();
+        const newBlob = imageCache[elementToNumber[newElem]];
+        if (newBlob) {
+          const img = new Image();
+          img.src = URL.createObjectURL(newBlob);
+          img.alt = newElem;
+          img.style.padding = "5px";
+          img.style.border = "1px solid #000";
+          this.replaceWith(img);
+          // 次回クリックも機能するように付け替え
+          p2_hand[index] = newElem;
+          img.className = this.className;
+          img.addEventListener("click", this.onclick);
+          // onclickを明示再設定
+          img.addEventListener("click", arguments.callee);
+        } else {
+          // 予防: 補充失敗時はそのまま
+        }
+
+        if (GameType === "CPU") {
+          turn = "p1";
+          if (document.getElementById("hintContainer")?.style.display !== 'none') {
+            document.getElementById("hint_button").click();
+          }
+          setTimeout(() => { checkRon(dropCard); }, 500);
+        } else {
+          // 相手へ同期
+          turn = (turn === "p2") ? "p1" : "p2";
+          changeTurn(turn);
+          shareAction("exchange", dropCard);
+        }
+      }
+    });
+
+    area.appendChild(image);
+  });
 }
+
 async function tmp() {
     const newButton = document.getElementById("done_button");
     newButton.addEventListener("click", async function () {
@@ -2117,14 +2142,15 @@ function onPeerDataAction(data) {
 }
 
 
-// 自他どちらの捨て札でも1本化して描画・配列更新
+// 自他どちらの捨て札でも1本化して描画・配列更新（ローカル視点で振り分け）
 function appendToDiscard(who, cardName) {
-  const areaId = who === "p1" ? "dropped_area_p1" : "dropped_area_p2";
+  const isMine = (who === MineTurn);
+  const areaId = isMine ? "dropped_area_p2" : "dropped_area_p1"; // 自分→p2側、相手→p1側
   const area = document.getElementById(areaId);
   if (!area || !cardName) return;
 
-  if (who === "p1") (window.dropped_cards_p1 ||= []).push(cardName);
-  else              (window.dropped_cards_p2 ||= []).push(cardName);
+  if (isMine) (window.dropped_cards_p2 ||= []).push(cardName);
+  else        (window.dropped_cards_p1 ||= []).push(cardName);
 
   const blob = imageCache[elementToNumber[cardName]];
   if (!blob) return;
@@ -2134,6 +2160,7 @@ function appendToDiscard(who, cardName) {
   img.style.border = "1px solid #000";
   area.appendChild(img);
 }
+
 
 
 function shareVariable() {
