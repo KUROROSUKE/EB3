@@ -1791,78 +1791,52 @@ let p1_finish_select = true; let p2_finish_select = true //true: 未選択  fals
 let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 // 両者の役確定後に一度だけ呼ぶ（ホスト）
-async function finish_done_select(p1_make_material_arg, p2_make_material_arg, who, isRon = false) {
-  try {
-    // 0) 入力の正規化：P2Pホストは conn._sel から欠損を補完
-    let p1_mat = p1_make_material_arg;
-    let p2_mat = p2_make_material_arg;
+// 両者の役確定後に一度だけ呼ぶ（ホスト側で実行）
+function finish_done_select(p1_make_material, p2_make_material, who, isRon = false) {
+  // --- 入力ガード ---
+  if (!p1_make_material || !p2_make_material) return;
+  const n = (v) => Number.isFinite(Number(v)) ? Number(v) : 0;
 
-    if (GameType === "P2P" && MineTurn === "p1" && conn && conn._sel && conn._sel.turn === numTurn) {
-      if (p1_mat == null) p1_mat = conn._sel.p1_mat ?? null;
-      if (p2_mat == null) p2_mat = conn._sel.p2_mat ?? null;
-    }
+  // --- 基本点 ---
+  let p1Add = n(p1_make_material.c);
+  let p2Add = n(p2_make_material.c);
 
-    // 1) 両者の材料が揃っていなければ何もしない（例外を出さない）
-    if (p1_mat == null || p2_mat == null) {
-      console.warn("finish_done_select: materials not ready", { p1_mat, p2_mat, turn: numTurn });
-      return;
-    }
+  // --- 相性ボーナス（安全参照）---
+  // 相手の組成式(b)が自分の生成条件配列(e)に含まれるなら1.5倍
+  const has = (arr, x) => Array.isArray(arr) && (arr.includes?.(x));
+  if (has(p1_make_material.e, p2_make_material.b)) p1Add *= 1.5;
+  if (has(p2_make_material.e, p1_make_material.b)) p2Add *= 1.5;
 
-    // 2) 安全なキー列挙ヘルパ
-    const keys = (o) => Object.keys(o || {});
-    // 以降の集計で null を踏まないようにデフォルト
-    const safeNum = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0);
-
-    // 3) 採点ロジック（例：共通要素数や一致度など、既存ロジックを踏襲）
-    //    ※ 元の実装で Object.keys(...) を用いていた箇所は keys(...) に置換
-    //    ここでは代表的な加点処理の形だけ示し、既存の詳細式は流用してください。
-    let add_p1 = 0;
-    let add_p2 = 0;
-
-    // 例: 構成要素一致で加点（元コードの式に置き換えてください）
-    const p1_elems = keys(p1_mat);
-    const p2_elems = keys(p2_mat);
-
-    // 共通キー数で加点するダミー例（本来は元の配点式を据え置き）
-    const commons = p1_elems.filter(k => p2_elems.includes(k)).length;
-    add_p1 += commons;
-    add_p2 += commons;
-
-    // 例: 各要素の値に応じた加点（安全に参照）
-    for (const k of p1_elems) {
-      add_p1 += safeNum(p1_mat[k]);
-    }
-    for (const k of p2_elems) {
-      add_p2 += safeNum(p2_mat[k]);
-    }
-
-    // 4) 内部ポイント加算と説明の更新（既存DOM仕様に合わせる）
-    p1_point = safeNum(p1_point) + add_p1;
-    p2_point = safeNum(p2_point) + add_p2;
-
-    const ex1 = document.getElementById("p1_explain");
-    const ex2 = document.getElementById("p2_explain");
-    if (ex1) ex1.innerHTML = `+${add_p1}`;
-    if (ex2) ex2.innerHTML = `+${add_p2}`;
-
-    const elP1 = document.getElementById("p1_point");
-    const elP2 = document.getElementById("p2_point");
-    if (elP1) elP1.innerHTML += `+${add_p1}`;
-    if (elP2) elP2.innerHTML += `+${add_p2}`;
-
-    // 5) UI更新（ホスト側で「次のゲーム」または「ラウンド終了」を反映）
-    if (typeof winnerAndChangeButton === "function") {
-      winnerAndChangeButton();
-    }
-
-    // 6) P2P 同期はホストのみ送信
-    if (GameType === "P2P" && MineTurn === "p1" && typeof sharePoints === "function") {
-      sharePoints();
-    }
-  } catch (e) {
-    console.error("finish_done_select error:", e);
+  // --- ロン補正（既存仕様を尊重。和了者と非和了者の比率を軽く調整）---
+  if (isRon) {
+    if (who === "p2") p2Add /= 1.2; else p1Add /= 1.2;
   }
+
+  // 過大加点の暴走防止（丸め）
+  p1Add = Math.round(p1Add);
+  p2Add = Math.round(p2Add);
+
+  // --- 累計へ反映 ---
+  p1_point = n(p1_point) + p1Add;
+  p2_point = n(p2_point) + p2Add;
+
+  // --- 表示更新 ---
+  const elP1 = document.getElementById("p1_point");
+  const elP2 = document.getElementById("p2_point");
+  if (elP1) elP1.innerHTML += `+${p1Add}`;
+  if (elP2) elP2.innerHTML += `+${p2Add}`;
+
+  const ex1 = document.getElementById("p1_explain");
+  const ex2 = document.getElementById("p2_explain");
+  if (ex1) ex1.innerHTML = `生成物質：${p1_make_material.a ?? ""}, 組成式：${p1_make_material.b ?? ""}`;
+  if (ex2) ex2.innerHTML = `生成物質：${p2_make_material.a ?? ""}, 組成式：${p2_make_material.b ?? ""}`;
+
+  // --- 同期とUI ---
+  // ホストのみ配信
+  if (GameType === "P2P" && MineTurn === "p1") sharePoints();
+  if (typeof winnerAndChangeButton === "function") winnerAndChangeButton();
 }
+
 
 // 「is_ok_p1 と is_ok_p2 の両方が true になるのを待つ」関数。あんまりラグ関係ない
 function waitUntilBothTrue(getVar1, getVar2, interval = 100) {
@@ -1998,22 +1972,23 @@ function setupConnection() {
 }
 
 // P2P: スコア同期。ホスト(p1)のみ送信して二重適用を防ぐ
+// スコア送信はホストのみ（二重送信防止）
 async function sharePoints() {
-    if (!(conn && conn.open)) return;
-    if (MineTurn !== "p1") return;  // ここを追加（ホストのみ送信）
+  if (!(conn && conn.open)) return;
+  if (MineTurn !== "p1") return; // ホストのみ
 
-    const p1_explain_copy = document.getElementById("p2_explain").textContent;
-    const p2_explain_copy = document.getElementById("p1_explain").textContent;
+  const p1_explain_copy = document.getElementById("p2_explain")?.textContent ?? "";
+  const p2_explain_copy = document.getElementById("p1_explain")?.textContent ?? "";
 
-    // 相手視点での値を送る仕様は維持
-    conn.send({
-        type: "pointsData",
-        p1_point: p2_point,
-        p1_explain: p1_explain_copy,
-        p2_point: p1_point,
-        p2_explain: p2_explain_copy
-    });
+  conn.send({
+    type: "pointsData",
+    p1_point: p2_point,
+    p1_explain: p1_explain_copy,
+    p2_point: p1_point,
+    p2_explain: p2_explain_copy
+  });
 }
+
 
 
 // 両者完了検知→ホストが一度だけ採点とポイント送信
