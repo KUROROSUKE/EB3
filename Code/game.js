@@ -2134,22 +2134,25 @@ function appendToDiscard(who, cardName) {
   area.appendChild(img);
 }
 
-
+// 置換: shareVariable
 function shareVariable() {
-    if (conn && conn.open) {
-        if (MineTurn === "p1") {
-            //console.log("📤 ホスト (p1) として変数送信！");
-            console.log(turn);
-            GameType = "P2P";
-            conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
-        } else {
-            //console.log("📤 ゲスト (p2) として変数送信！");
-            conn.send({type: "shareVariables", p1_hand: p2_hand });
-        }
-    } else {
-        //console.log("⚠️ 接続が開かれていません！");
-    }
+  if (!(GameType === "P2P" && conn && conn.open)) return;
+
+  const payload = {
+    type: "variable",
+    role: MineTurn,        // 既存のロール情報に合わせて必要なら修正
+    turn: typeof turn !== "undefined" ? turn : null,
+    numTurn: typeof numTurn !== "undefined" ? numTurn : 1,
+    gameType: GameType
+  };
+
+  // deckが未初期化なら送らない（typeofは未宣言でも安全）
+  const hasDeck = (typeof deck !== "undefined") && Array.isArray(deck) && deck.length > 0;
+  if (hasDeck) payload.deck = deck;
+
+  conn.send(payload);
 }
+
 function shareAction(action, otherData) {
   if (conn && conn.open) {
     conn.send({
