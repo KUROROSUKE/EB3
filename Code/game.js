@@ -1830,63 +1830,57 @@ function waitUntilBothTrue(getVar1, getVar2, interval = 100) {
         }, interval);
     });
 }
+// 置換: winnerAndChangeButton
 async function winnerAndChangeButton() {
-    // 2. 勝者判定
-    const winner = await win_check();
-    
-    document.getElementById("done_button").style.display = "none";
-    const button = document.getElementById("nextButton");
-    button.style.display = "inline";
-  
-    // 3. winner が false → 「次のゲーム」ボタン
-    if (!winner) {
-        console.log("次のゲーム");
-        button.textContent = "次のゲーム";
-        
-        // クリック時の処理を async 化する
-        button.addEventListener("click", async function () {
-            // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
-            //localStorage.setItem('tutorialSeen', 'true');
-            is_ok_p2 = true;
-            nextIsOK()
-            button.style.display = "none";
-            console.log("OK")
-            await waitUntilBothTrue(
-                () => is_ok_p1,
-                () => is_ok_p2
-            );
-            is_ok_p1 = false
-            is_ok_p2 = false
-            // 5. 両方 OK なら、次のゲーム処理を実行
-            numTurn += 1;
-            resetGame();
-            // addEventListener の重複を避けるため、一度ボタンを置き換える
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-        });
-    } else {
-        console.log("ラウンド終了");
-        button.textContent = "ラウンド終了";
-        button.addEventListener("click", function () {
-            p1_point = 0;
-            p2_point = 0;
-            numTurn = 1;
-            const user = firebase.auth().currentUser;
-            if (IsRankMatch && MineTurn=="p2") {updateRating(user.uid, opponentUid);}
-            IsRankMatch = false;
+  const winner = await win_check();
 
-            conn.close();
+  const doneBtn = document.getElementById("done_button");
+  if (doneBtn) doneBtn.style.display = "none";
 
-            resetGame();
-            returnToStartScreen();
-            button.style.display = "none";
-            
+  // 既存リスナーの一掃を“追加前”に実施
+  let button = document.getElementById("nextButton");
+  const clean = button.cloneNode(true);
+  button.parentNode.replaceChild(clean, button);
+  button = clean;
+  button.style.display = "inline";
 
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-        });
-    }
+  if (!winner) {
+    // 次のゲーム
+    button.textContent = "次のゲーム";
+    button.addEventListener("click", async () => {
+      is_ok_p2 = true;
+      nextIsOK();
+      button.style.display = "none";
+
+      await waitUntilBothTrue(() => is_ok_p1, () => is_ok_p2);
+      is_ok_p1 = false;
+      is_ok_p2 = false;
+
+      numTurn += 1;
+      resetGame();
+    }, { once: true });
+
+  } else {
+    // ラウンド終了
+    button.textContent = "ラウンド終了";
+    button.addEventListener("click", () => {
+      p1_point = 0;
+      p2_point = 0;
+      numTurn = 1;
+
+      const user = firebase.auth().currentUser;
+      if (IsRankMatch && MineTurn === "p2") updateRating(user.uid, opponentUid);
+      IsRankMatch = false;
+
+      if (conn && conn.close) conn.close();
+
+      resetGame();
+      returnToStartScreen();
+      button.style.display = "none";
+    }, { once: true });
+  }
 }
+
 async function generatePeerID() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
     const symbols = '-_';
