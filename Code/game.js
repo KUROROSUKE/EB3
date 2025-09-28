@@ -445,65 +445,55 @@ document.getElementById("startButton").addEventListener("click", function() {
 });
 // reset game state// 置換: resetGame（P2P用フラグ初期化を追加）
 // 置換: resetGame
+// 置換: resetGame
 function resetGame() {
-  // --- UI 初期化 ---
+  // 未定義ポイントの初期化
+  if (typeof p1_point !== "number") p1_point = 0;
+  if (typeof p2_point !== "number") p2_point = 0;
+  if (typeof numTurn  !== "number") numTurn  = 1;
+
+  // UI初期化
   const bottomNav = document.getElementById("bottomNav");
   if (bottomNav) bottomNav.style.display = "none";
-
   const doneBtn = document.getElementById("done_button");
   const nextBtn = document.getElementById("nextButton");
-  const genBtn  = document.getElementById("generate_button");
-  const hintBtn = document.getElementById("hint_button");
-
   if (doneBtn) doneBtn.style.display = "none";
   if (nextBtn) nextBtn.style.display = "none";
 
-  // --- 状態初期化 ---
-  p1_hand = [];
-  p2_hand = [];
-  dropped_cards_p1 = [];
-  dropped_cards_p2 = [];
-  p1_selected_card = [];
-  p2_selected_card = [];
+  // 状態クリア
+  p1_hand = []; p2_hand = [];
+  dropped_cards_p1 = []; dropped_cards_p2 = [];
+  p1_selected_card = []; p2_selected_card = [];
   time = "game";
 
-  // P2P 重複対策フラグ
-  if (typeof conn !== "undefined" && conn) {
-    conn._lastPointsKey     = null;  // pointsData のデデュープ
-    conn._sentTurn          = null;  // 同ターン二重送信防止
-    conn._shownNextForTurn  = null;  // 「次のゲーム」表示の同期
+  // P2Pフラグ
+  if (conn) {
+    conn._lastPointsKey    = null;
+    conn._sentTurn         = null;
+    conn._shownNextForTurn = null;
   }
 
-  // --- 山札の扱い ---
-  // ホスト or オフライン/CPU は毎回生成。ゲストは受信済み deck を保持。
-  const isP2P   = (GameType === "P2P");
-  const isGuest = (MineTurn === "p2");
-  const guestHasDeck = isP2P && isGuest && Array.isArray(deck) && deck.length > 0;
-
-  if (!guestHasDeck) {
-    // 要素配列名は既存のものを使用（例: elements）
+  // 山札: ホストorシングルは毎回生成。ゲストは受信済みdeck維持。
+  const needNewDeck = !(GameType === "P2P" && MineTurn === "p2" && Array.isArray(deck) && deck.length > 0);
+  if (needNewDeck) {
     deck = Array.isArray(elements) ? [...elements, ...elements] : [];
     if (typeof shuffle === "function") deck = shuffle(deck);
   }
 
-  // --- ターン決定 ---
-  if (isP2P) {
-    // ホストのみ乱択して通知（changeTurn 内でUI反映）
+  // ターン決定とUI
+  if (GameType === "P2P") {
     if (MineTurn === "p1") {
-      turn = Math.random() < 0.5 ? "p1" : "p2";
-      if (typeof changeTurn === "function") changeTurn(turn);
+      const t = Math.random() < 0.5 ? "p1" : "p2";
+      changeTurn(t); // 内部でUI更新＋通知
+    } else {
+      updateTurnUI(); // ゲストは通知待ちでも自分のUIを安全に更新
     }
-    if (genBtn) genBtn.style.display = "none"; // P2Pは手動生成ボタン非表示
   } else {
-    turn = Math.random() < 0.5 ? "p1" : "p2";
-    if (genBtn) genBtn.style.display = "inline";
+    const t = Math.random() < 0.5 ? "p1" : "p2";
+    changeTurn(t);
   }
 
-  // --- フロー制御 ---
-  p1_finish_select = true;
-  p2_finish_select = true;
-
-  // --- 画面クリア ---
+  // 画面クリア
   const p1H = document.getElementById("p1_hand");
   const p2H = document.getElementById("p2_hand");
   const da1 = document.getElementById("dropped_area_p1");
@@ -513,26 +503,23 @@ function resetGame() {
   if (da1) da1.innerHTML = "";
   if (da2) da2.innerHTML = "";
 
-  // --- 配札と描画 ---
+  // 配札と描画
   if (typeof random_hand === "function") random_hand();
   if (typeof view_p1_hand === "function") view_p1_hand();
   if (typeof view_p2_hand === "function") view_p2_hand();
 
-  // --- ポイントと説明表示を総計上書きで更新 ---
-  const p1Pt = document.getElementById("p1_point");
-  const p2Pt = document.getElementById("p2_point");
+  // ポイント表示
+  updatePointsUI();
+
+  // 説明クリア
   const p1Ex = document.getElementById("p1_explain");
   const p2Ex = document.getElementById("p2_explain");
   const prd  = document.getElementById("predictResult");
-
-  if (p1Pt) p1Pt.textContent = `ポイント：${Number(p1_point) || 0}`;
-  if (p2Pt) p2Pt.textContent = `ポイント：${Number(p2_point) || 0}`;
   if (p1Ex) p1Ex.textContent = " ";
   if (p2Ex) p2Ex.textContent = " ";
   if (prd)  prd.textContent  = " ";
-
-  if (hintBtn) hintBtn.style.display = "inline";
 }
+
 
 
 
@@ -1985,106 +1972,84 @@ function setupConnection() {
 }
 
 // 追加/置換: 次ボタン表示のデバウンス呼び出し
+// 置換: maybeShowNextButton
 function maybeShowNextButton() {
-  if (!conn) { winnerAndChangeButton(); return; }
-  if (conn._shownNextForTurn === numTurn) return;
-  conn._shownNextForTurn = numTurn;
+  // 多重防止
+  if (conn && conn._shownNextForTurn === numTurn) return;
+  if (conn) conn._shownNextForTurn = numTurn;
 
-  // 自分側で表示
-  winnerAndChangeButton();
-
-  // 相手にも指示（同ターン一度だけ）
-  if (conn.open) conn.send({ type: "showNext", turn: numTurn });
+  winnerAndChangeButton(); // 自分に表示
+  if (GameType === "P2P" && conn && conn.open) {
+    conn.send({ type: "showNext", turn: numTurn }); // 相手にも指示
+  }
 }
 
 
 // 受信データ統合ハンドラ：既存ロジックを集約し、startGameの多重起動を防止
 // 置換: onPeerData（互換: singularも受ける）
+// 置換: onPeerData（必要部分のみ）
 async function onPeerData(data) {
-  try {
-    if (!data || typeof data !== "object") return;
+  if (!data || typeof data !== "object") return;
 
-    if (data.type === "role") {
-      MineTurn = data.value;
-      turn = "p1";
-      return;
-    }
+  if (data.type === "variables" || data.type === "variable") {
+    if (Array.isArray(data.deck)) deck = data.deck;
+    if (typeof data.win_point === "number") WIN_POINT = data.win_point;
+    if (typeof data.win_turn  === "number") WIN_TURN  = data.win_turn;
+    if (typeof data.p1_total  === "number") p1_point  = data.p1_total;
+    if (typeof data.p2_total  === "number") p2_point  = data.p2_total;
+    if (typeof data.numTurn   === "number") numTurn   = data.numTurn;
+    if (data.turn === "p1" || data.turn === "p2") turn = data.turn;
 
-    // "variable" を "variables" と同等に扱う互換対応
-    if (data.type === "variables" || data.type === "variable") {
-      p1_hand   = data.p1_hand ?? p1_hand;
-      deck      = Array.isArray(data.deck) ? data.deck : deck;
-      WIN_POINT = data.win_point ?? WIN_POINT;
-      WIN_TURN  = data.win_turn  ?? WIN_TURN;
+    updatePointsUI();
+    updateTurnUI();
 
-      const vjson = JSON.stringify({deck, WIN_POINT, WIN_TURN, p1_hand});
-      if (conn && conn._lastVariablesJSON === vjson) return;
-      if (conn) conn._lastVariablesJSON = vjson;
-
-      if (typeof loadMaterials === "function" && data.compounds_url) {
-        materials = await loadMaterials(data.compounds_url);
-      }
-      if (!conn._gameStarted) {
-        startGame();
-        conn._gameStarted = true;
-      }
-      return;
-    }
-
-    if (data.type === "shareVariables") {
-      p1_hand = p2_hand;
-      GameType = "P2P";
-      const modal = document.getElementById("PeerModal");
-      if (modal) modal.style.display = "none";
-      if (!conn._gameStarted) {
-        startGame();
-        conn._gameStarted = true;
-      }
-      return;
-    }
-
-    if (data.type === "turn") {
-      turn = data.value;
-      document.getElementById("generate_button").style.display =
-        (turn === MineTurn) ? "inline" : "none";
-      return;
-    }
-
-    if (data.type === "action") { onPeerDataAction(data); return; }
-
-    if (data.type === "selected") {
-      p1_finish_select = false;
-      p1_make_material = data.otherData;
-      if (!p2_finish_select && typeof finish_done_select === "function") {
-        finish_done_select(p1_make_material, p2_make_material, "p1");
-      }
-      return;
-    }
-
-    if (data.type === "pointsData") {
-      const key = JSON.stringify(data);
-      if (conn && conn._lastPointsJSON === key) return;
-      if (conn) conn._lastPointsJSON = key;
-
-      // 上書きのみ
-      p1_point = data.p1_point;
-      p2_point = data.p2_point;
-      document.getElementById("p1_point").textContent = `ポイント：${p1_point}`;
-      document.getElementById("p2_point").textContent = `ポイント：${p2_point}`;
-      document.getElementById("p1_explain").textContent = data.p1_explain || "";
-      document.getElementById("p2_explain").textContent = data.p2_explain || "";
-      return;
-    }
-
-    if (data.type === "nextIsOK") { is_ok_p1 = true; return; }
-
-    if (data.p1_hand !== undefined) p1_hand = data.p1_hand;
-    if (data.deck   !== undefined) deck    = data.deck;
-
-  } catch (e) {
-    console.error("onPeerData error:", e);
+    // 画面遷移と配札描画
+    if (typeof startGame === "function") startGame();
+    if (typeof view_p1_hand === "function") view_p1_hand();
+    if (typeof view_p2_hand === "function") view_p2_hand();
+    return;
   }
+
+  if (data.type === "turn") {
+    turn = data.value;
+    updateTurnUI();
+    return;
+  }
+
+  if (data.type === "showNext") {
+    if (conn && typeof data.turn === "number") {
+      if (conn._shownNextForTurn === data.turn) return;
+      conn._shownNextForTurn = data.turn;
+    }
+    winnerAndChangeButton();
+    return;
+  }
+
+  // 相手の精製（選択）通知
+  if (data.type === "selected") {
+    // 既存仕様に合わせて代入
+    p1_finish_select = false;
+    p1_make_material = data.otherData;
+    // ログ確認のため
+    console.log("peer selected:", data.otherData);
+
+    // 双方完了なら決着処理
+    if (!p2_finish_select && typeof finish_done_select === "function") {
+      finish_done_select(p1_make_material, p2_make_material, "p1");
+    }
+    return;
+  }
+
+  if (data.type === "pointsData") {
+    handlePointsData(data);
+    return;
+  }
+
+  // 互換: 素朴なプロパティで来た場合
+  if (data.p1_hand !== undefined) p1_hand = data.p1_hand;
+  if (data.deck   !== undefined) deck    = data.deck;
 }
+
 
 
 
@@ -2176,31 +2141,68 @@ function appendToDiscard(who, cardName) {
   area.appendChild(img);
 }
 
-// 置換: shareVariable
-// 置換: shareVariable
+// 置換: shareVariable（初期同期を拡張）
 function shareVariable() {
   if (!(GameType === "P2P" && conn && conn.open)) return;
 
-  // 山札が未生成ならホストで生成
-  if (MineTurn === "p1" && (!Array.isArray(deck) || deck.length === 0)) {
-    deck = [...elements, ...elements];
-    deck = shuffle(deck);
-  }
+  // 未定義ポイントの初期化
+  if (typeof p1_point !== "number") p1_point = 0;
+  if (typeof p2_point !== "number") p2_point = 0;
+  if (typeof numTurn !== "number")  numTurn  = 1;
 
+  // ホストが山札・設定・ポイントを配る
   if (MineTurn === "p1") {
-    GameType = "P2P";
+    if (!Array.isArray(deck) || deck.length === 0) {
+      deck = Array.isArray(elements) ? [...elements, ...elements] : [];
+      if (typeof shuffle === "function") deck = shuffle(deck);
+    }
     conn.send({
-      type: "variables",                 // ← 必ず複数形
-      p1_hand: p1_hand,                  // 相手視点の初期手札が必要なら送る
-      deck: deck,                        // 同期用
+      type: "variables",
+      deck,
       win_point: WIN_POINT,
       win_turn: WIN_TURN,
-      compounds_url: compoundsURL
+      p1_total: p1_point,
+      p2_total: p2_point,
+      turn,
+      numTurn
     });
-  } else {
-    conn.send({ type: "shareVariables", p1_hand: p2_hand });
+    // 自分のUIも整える
+    updatePointsUI();
+    updateTurnUI();
   }
 }
+
+// 追加: 総計上書きUI更新ヘルパ
+function updatePointsUI() {
+  if (typeof p1_point !== "number") p1_point = 0;
+  if (typeof p2_point !== "number") p2_point = 0;
+  const p1Pt = document.getElementById("p1_point");
+  const p2Pt = document.getElementById("p2_point");
+  if (p1Pt) p1Pt.textContent = `ポイント：${p1_point}`;
+  if (p2Pt) p2Pt.textContent = `ポイント：${p2_point}`;
+}
+
+// 置換: changeTurn（ローカルUIも即時反映し、相手へ通知）
+function changeTurn(newTurn) {
+  turn = newTurn;
+  updateTurnUI();
+  if (GameType === "P2P" && conn && conn.open) {
+    conn.send({ type: "turn", value: turn });
+  }
+}
+
+// 追加: ターンに応じたUI
+function updateTurnUI() {
+  const genBtn = document.getElementById("generate_button");
+  if (!genBtn) return;
+  if (GameType === "P2P") {
+    genBtn.style.display = (turn === MineTurn) ? "inline" : "none";
+  } else {
+    genBtn.style.display = "inline";
+  }
+}
+
+
 
 function shareAction(action, otherData) {
   if (conn && conn.open) {
@@ -2256,31 +2258,24 @@ function sharePoints() {
 }
 
 // 置換: handlePointsData（受信側で上書きのみ。送信者は無視）
-// 置換: handlePointsData（受信時にボタン表示も起動）
+// 置換: handlePointsData（受信でUI更新＋次ボタン表示）
 function handlePointsData(data) {
   if (!data || data.type !== "pointsData") return;
-
-  // 自送の無視
-  if (GameType === "P2P" && MineTurn === data.from) return;
 
   // デデュープ
   const key = JSON.stringify({ t: data.turn, p1: data.p1_total, p2: data.p2_total });
   if (conn && conn._lastPointsKey === key) return;
   if (conn) conn._lastPointsKey = key;
 
-  // 総計を上書き
+  // 総計上書き
   p1_point = Number(data.p1_total) || 0;
   p2_point = Number(data.p2_total) || 0;
-  const p1El = document.getElementById("p1_point");
-  const p2El = document.getElementById("p2_point");
-  if (p1El) p1El.textContent = `ポイント：${p1_point}`;
-  if (p2El) p2El.textContent = `ポイント：${p2_point}`;
-  if (data.p1_explain) document.getElementById("p1_explain").textContent = data.p1_explain;
-  if (data.p2_explain) document.getElementById("p2_explain").textContent = data.p2_explain;
+  updatePointsUI();
 
-  // 勝敗確定後の「次のゲーム」を双方で同期表示
+  // 勝敗確定後、双方で「次のゲーム」を同期表示
   maybeShowNextButton();
 }
+
 
 
 
