@@ -815,6 +815,7 @@ document.getElementById("generate_button").addEventListener("click", async funct
         document.getElementById("hintContainer").style.display = "none"; // 非表示
         document.getElementById("hint_button").style.display = "none"; // 非表示
         time = "make";
+        scrollToBoardTop();
         document.getElementById("ron_button").style.display = "none";
         if (GameType=="CPU") {
             done("p2");
@@ -897,6 +898,7 @@ async function checkRon(droppedCard) {
             newRonButton.addEventListener("click", function () {
                 newRonButton.style.display = "none";
                 p2_selected_card = [droppedCard];
+                scrollToBoardTop();
                 p2_make();
                 
                 // 捨て牌一覧の最後の要素を取得し、赤枠を付ける
@@ -1045,6 +1047,12 @@ async function win_check() {
     }
 }
 
+
+function scrollToBoardTop() {
+  const el = document.querySelector('.game-wrapper');
+  if (el) el.scrollIntoView({ behavior: 'auto', block: 'start' });
+  if (document.activeElement) document.activeElement.blur();
+}
 
 
 // -------- hint functions (calculation by cos similarity) --------

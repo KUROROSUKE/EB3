@@ -594,11 +594,12 @@ input[type="number"]{
     transition:width .4s ease;
 }
 
+/* 置き換え対象: .game-wrapper */
 .game-wrapper{
-    position: relative;          /* ビューポート基準 */
-    text-align: center;
-    top: 30vh;                /* 画面高の真ん中に基準点を置く */
-    left: 50%;                /* 横も中央 */
-    transform: translate(-50%, -30%);   /* 自分自身の 50% ずつ逆方向へ戻す */
-    width: 100vw;
+  position: static;
+  text-align: center;
+  width: 100%;
+  max-width: 1200px;
+  margin: clamp(8px, 2vh, 24px) auto clamp(48px, 6vh, 96px);
+  padding: 0 12px;
 }
