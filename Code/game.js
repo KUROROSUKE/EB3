@@ -699,9 +699,11 @@ async function showDown() {
 // view p2_hand and card operations processing
 // TODO: CPU対戦とP2P対戦のときの条件分岐をもうちょっと考える
 // p2手札の描画とクリック挙動（捨て札はappendToDiscardに集約）
+// 差し替え: p2手札の描画（イベント委譲を1回だけ付与）
 function view_p2_hand() {
   const area = document.getElementById('p2_hand');
   area.innerHTML = '';
+
   p2_hand.forEach((elem, index) => {
     const blob = imageCache[elementToNumber[elem]];
     if (!blob) return;
@@ -710,76 +712,16 @@ function view_p2_hand() {
     image.alt = elem;
     image.style.padding = "5px";
     image.style.border = "1px solid #000";
-    image.classList.add("selected");
-    image.classList.toggle("selected");
     image.classList.add("p2_card");
-
-    image.addEventListener("click", function () {
-      const ronBtn = document.getElementById("ron_button");
-      if (ronBtn) ronBtn.style.display = "none";
-
-      // 手札選択フェーズ
-      if (time === "make") {
-        this.classList.toggle("selected");
-        if (this.classList.contains("selected")) {
-          if (!p2_selected_card.includes(this.alt)) p2_selected_card.push(this.alt);
-        } else {
-          const i = p2_selected_card.indexOf(this.alt);
-          if (i !== -1) p2_selected_card.splice(i, 1);
-        }
-        return;
-      }
-
-      // ゲーム中の手番でのみ捨て札可能
-      if (time === "game" && turn === MineTurn) {
-        const dropCard = this.alt;
-
-        // 捨て札の描画と配列更新（ローカル視点）
-        appendToDiscard(MineTurn, dropCard);
-
-        // ビジュアル状態更新
-        this.classList.remove("selected");
-        this.classList.add("selected"); // 元の挙動を踏襲
-        this.classList.toggle("selected");
-        this.classList.add("p2_card");
-
-        // 山から補充
-        const newElem = drawCard();
-        const newBlob = imageCache[elementToNumber[newElem]];
-        if (newBlob) {
-          const img = new Image();
-          img.src = URL.createObjectURL(newBlob);
-          img.alt = newElem;
-          img.style.padding = "5px";
-          img.style.border = "1px solid #000";
-          this.replaceWith(img);
-          // 次回クリックも機能するように付け替え
-          p2_hand[index] = newElem;
-          img.className = this.className;
-          img.addEventListener("click", this.onclick);
-          // onclickを明示再設定
-          img.addEventListener("click", arguments.callee);
-        } else {
-          // 予防: 補充失敗時はそのまま
-        }
-
-        if (GameType === "CPU") {
-          turn = "p1";
-          if (document.getElementById("hintContainer")?.style.display !== 'none') {
-            document.getElementById("hint_button").click();
-          }
-          setTimeout(() => { checkRon(dropCard); }, 500);
-        } else {
-          // 相手へ同期
-          turn = (turn === "p2") ? "p1" : "p2";
-          changeTurn(turn);
-          shareAction("exchange", dropCard);
-        }
-      }
-    });
-
+    image.dataset.index = String(index);
     area.appendChild(image);
   });
+
+  // リスナー多重付与防止。未付与なら1度だけ付与。
+  if (!area.dataset.listenerAttached) {
+    area.addEventListener('click', handleP2CardClick);
+    area.dataset.listenerAttached = '1';
+  }
 }
 
 async function tmp() {
@@ -1974,6 +1916,80 @@ function setupConnection() {
   // 受信窓口を関数化
   conn.on("data", onPeerData);
   conn.on("close", onPeerClose);
+}
+
+// 新規: p2手札クリックの一括ハンドラ（イベント委譲）
+// リスナーは1個だけ。多重実行を data-busy で抑止。
+function handleP2CardClick(event) {
+  const area = document.getElementById('p2_hand');
+  const target = event.target.closest('.p2_card');
+  if (!target || !area.contains(target)) return;
+
+  // 手札選択フェーズ
+  if (time === "make") {
+    target.classList.toggle("selected");
+    const name = target.alt;
+    if (target.classList.contains("selected")) {
+      if (!p2_selected_card.includes(name)) p2_selected_card.push(name);
+    } else {
+      const i = p2_selected_card.indexOf(name);
+      if (i !== -1) p2_selected_card.splice(i, 1);
+    }
+    return;
+  }
+
+  // ゲーム中のみ。自分の手番以外は無視。
+  if (!(time === "game" && turn === MineTurn)) return;
+
+  // 多重実行防止
+  if (target.dataset.busy === "1") return;
+  target.dataset.busy = "1";
+
+  const ronBtn = document.getElementById("ron_button");
+  if (ronBtn) ronBtn.style.display = "none";
+
+  const dropCard = target.alt;
+
+  // 捨て札の描画と配列更新（ローカル視点）
+  appendToDiscard(MineTurn, dropCard);
+
+  // ビジュアル状態更新（元のクラス操作を踏襲）
+  target.classList.remove("selected");
+  target.classList.add("selected");
+  target.classList.toggle("selected");
+  target.classList.add("p2_card");
+
+  // 山から補充して置換
+  const idx = Number(target.dataset.index);
+  const newElem = drawCard();
+  const newBlob = imageCache[elementToNumber[newElem]];
+  if (newBlob) {
+    const img = new Image();
+    img.src = URL.createObjectURL(newBlob);
+    img.alt = newElem;
+    img.style.padding = "5px";
+    img.style.border = "1px solid #000";
+    img.className = target.className;       // .p2_card 等を引き継ぐ
+    img.dataset.index = String(idx);        // インデックス維持（委譲なので個別リスナー不要）
+    target.replaceWith(img);
+    p2_hand[idx] = newElem;
+  }
+
+  // 手番遷移と同期
+  if (GameType === "CPU") {
+    turn = "p1";
+    if (document.getElementById("hintContainer")?.style.display !== 'none') {
+      document.getElementById("hint_button").click();
+    }
+    setTimeout(() => { checkRon(dropCard); }, 500);
+  } else {
+    turn = (turn === "p2") ? "p1" : "p2";
+    changeTurn(turn);
+    shareAction("exchange", dropCard);
+  }
+
+  // 念のため解放
+  target.dataset.busy = "0";
 }
 
 
