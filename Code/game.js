@@ -444,6 +444,7 @@ document.getElementById("startButton").addEventListener("click", function() {
     resetGame();
 });
 // reset game state
+// 置換: resetGame
 function resetGame() {
     document.getElementById("bottomNav").style.display = "none";
     p1_hand = [];
@@ -460,6 +461,8 @@ function resetGame() {
             console.log(`random turn :: ${turn}`)
             changeTurn(turn);
         }
+        // ターン開始時にポイント送信フラグをリセット
+        if (conn) conn._sentForTurn = false;
     } else {
         turn = Math.random() <= 0.5 ? "p1" : "p2";
         document.getElementById("generate_button").style.display = "inline";
@@ -470,37 +473,9 @@ function resetGame() {
     document.getElementById("p1_point").innerHTML = `ポイント：${p1_point}`;
     document.getElementById("p2_point").innerHTML = `ポイント：${p2_point}`;
     document.getElementById("p2_explain").innerHTML = " ";
-    document.getElementById("predictResult").innerHTML = " ";
-    const ExplainArea = document.getElementById("p1_explain")
-    ExplainArea.innerHTML = " ";
-    ExplainArea.style.color = "black";
-    ExplainArea.style.fontSize = "16px";
-
-    document.getElementById("done_button").style.display = "none";
-    document.getElementById("nextButton").style.display = "none";
-    deck = [...elements, ...elements];
-    deck = shuffle(deck);
-
-    const p1_hand_element = document.getElementById("p1_hand");
-    const p2_hand_element = document.getElementById("p2_hand");
-    p1_hand_element.innerHTML = "";
-    p2_hand_element.innerHTML = "";
-
-    const dropped_area_p1_element = document.getElementById("dropped_area_p1");
-    const dropped_area_p2_element = document.getElementById("dropped_area_p2");
-    dropped_area_p1_element.innerHTML = "";
-    dropped_area_p2_element.innerHTML = "";
-
-    random_hand();
-    view_p1_hand();
-    view_p2_hand();
-    document.getElementById("hint_button").style.display = "inline";
-
-    if (turn !== MineTurn && GameType=="CPU") {
-        //もし最初、自分のターンじゃないなら相手から実行
-        setTimeout(() => p1_action(), 500);
-    }
+    document.getElementById("p1_explain").innerHTML = " ";
 }
+
 // return to screen
 function returnToStartScreen() {
     document.getElementById("startScreen").style.display = "flex";
@@ -1831,55 +1806,56 @@ function waitUntilBothTrue(getVar1, getVar2, interval = 100) {
     });
 }
 // 置換: winnerAndChangeButton
+// 置換: winnerAndChangeButton
 async function winnerAndChangeButton() {
-  const winner = await win_check();
+    const winner = await win_check();
+    const doneBtn = document.getElementById("done_button");
+    if (doneBtn) doneBtn.style.display = "none";
 
-  const doneBtn = document.getElementById("done_button");
-  if (doneBtn) doneBtn.style.display = "none";
+    // 既存リスナーを追加前に除去
+    let button = document.getElementById("nextButton");
+    const clean = button.cloneNode(true);
+    button.parentNode.replaceChild(clean, button);
+    button = clean;
+    button.style.display = "inline";
 
-  // 既存リスナーの一掃を“追加前”に実施
-  let button = document.getElementById("nextButton");
-  const clean = button.cloneNode(true);
-  button.parentNode.replaceChild(clean, button);
-  button = clean;
-  button.style.display = "inline";
+    if (!winner) {
+        // 次のゲーム
+        button.textContent = "次のゲーム";
+        button.addEventListener("click", async () => {
+            is_ok_p2 = true;
+            nextIsOK();
+            button.style.display = "none";
 
-  if (!winner) {
-    // 次のゲーム
-    button.textContent = "次のゲーム";
-    button.addEventListener("click", async () => {
-      is_ok_p2 = true;
-      nextIsOK();
-      button.style.display = "none";
+            await waitUntilBothTrue(() => is_ok_p1, () => is_ok_p2);
+            is_ok_p1 = false;
+            is_ok_p2 = false;
 
-      await waitUntilBothTrue(() => is_ok_p1, () => is_ok_p2);
-      is_ok_p1 = false;
-      is_ok_p2 = false;
+            numTurn += 1;
+            resetGame();
+        }, { once: true });
 
-      numTurn += 1;
-      resetGame();
-    }, { once: true });
+    } else {
+        // ラウンド終了
+        button.textContent = "ラウンド終了";
+        button.addEventListener("click", () => {
+            p1_point = 0;
+            p2_point = 0;
+            numTurn = 1;
 
-  } else {
-    // ラウンド終了
-    button.textContent = "ラウンド終了";
-    button.addEventListener("click", () => {
-      p1_point = 0;
-      p2_point = 0;
-      numTurn = 1;
+            const user = firebase.auth().currentUser;
+            if (IsRankMatch && MineTurn === "p2") updateRating(user.uid, opponentUid);
+            IsRankMatch = false;
 
-      const user = firebase.auth().currentUser;
-      if (IsRankMatch && MineTurn === "p2") updateRating(user.uid, opponentUid);
-      IsRankMatch = false;
+            if (conn && conn.close) conn.close();
 
-      if (conn && conn.close) conn.close();
-
-      resetGame();
-      returnToStartScreen();
-      button.style.display = "none";
-    }, { once: true });
-  }
+            resetGame();
+            returnToStartScreen();
+            button.style.display = "none";
+        }, { once: true });
+    }
 }
+
 
 async function generatePeerID() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -2179,15 +2155,28 @@ async function finishSelect() {
         conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
     }
 }
+// 置換: sharePoints
 async function sharePoints() {
-    if (conn && conn.open) {
-        p1_explain_copy = document.getElementById("p2_explain").textContent
-        p2_explain_copy = document.getElementById("p1_explain").textContent
-        //console.log(p1_explain_copy)
-        //console.log(p2_explain_copy)
-        conn.send({type: "pointsData", p1_point: p2_point, p1_explain: p1_explain_copy, p2_point: p1_point, p2_explain: p2_explain_copy})
-    }
+    // 送信は常にゲスト側(p2)だけに限定。さらにターン内一度だけ。
+    if (!(conn && conn.open)) return;
+    if (MineTurn !== "p2") return;
+    if (conn._sentForTurn) return;
+
+    const p1_explain_copy = document.getElementById("p2_explain").textContent;
+    const p2_explain_copy = document.getElementById("p1_explain").textContent;
+
+    conn.send({
+        type: "pointsData",
+        // 受信側(p1)視点で反転させる既存仕様を踏襲
+        p1_point: p2_point,
+        p1_explain: p1_explain_copy,
+        p2_point: p1_point,
+        p2_explain: p2_explain_copy
+    });
+
+    conn._sentForTurn = true; // このターンは送信済み
 }
+
 async function nextIsOK() {
     if (conn && conn.open) {
         conn.send({type: "nextIsOK", content: true})
