@@ -1996,83 +1996,65 @@ async function sharePoints() {
 
 
 // 受信データ統合ハンドラ：既存ロジックを集約し、startGameの多重起動を防止
+// 受信処理
 async function onPeerData(data) {
   try {
     console.log("📩", data);
     if (!data || typeof data !== "object") return;
 
-    // role：ゲスト側で自分の手番確定
-    if (data.type === "role") {
-      MineTurn = data.value;   // "p2"
-      turn     = "p1";         // 常に p1 から開始
-      return;
-    }
+    if (data.type === "role") { MineTurn = data.value; turn = "p1"; return; }
 
-    // variables：ホスト→ゲスト 初期同期
     if (data.type === "variables") {
-      p1_hand   = data.p1_hand;
-      deck      = data.deck;
+      p1_hand = data.p1_hand;
+      deck = data.deck;
       WIN_POINT = data.win_point;
       WIN_TURN  = data.win_turn;
-
-      // 重複適用防止（同一内容なら無視）
       const vjson = JSON.stringify(data);
       if (conn._lastVariablesJSON === vjson) return;
       conn._lastVariablesJSON = vjson;
-
-      // materials を読み込んでから盤面生成。未開始なら一度だけ
       if (typeof loadMaterials === "function" && data.compounds_url) {
         materials = await loadMaterials(data.compounds_url);
       }
-      if (typeof setupBoard === "function") setupBoard();
-
-      // UI 初期化
-      const modal = document.getElementById("wait_modal");
-      if (modal) modal.style.display = "none";
-      if (!conn._gameStarted) {
-        startGame();
-        conn._gameStarted = true;
+      if (!conn._gameStarted && typeof startGame === "function") {
+        startGame(); conn._gameStarted = true;
       }
       return;
     }
 
-    // ターン切替
     if (data.type === "turn") {
       turn = data.value;
-      if (turn === MineTurn) {
-        document.getElementById("generate_button").style.display = "inline";
-      } else {
-        document.getElementById("generate_button").style.display = "none";
-      }
+      const genBtn = document.getElementById("generate_button");
+      if (genBtn) genBtn.style.display = (turn === MineTurn) ? "inline" : "none";
       return;
     }
 
-    // アクション同期
     if (data.type === "action") { onPeerDataAction(data); return; }
 
-    // 選択結果（p1側の選択を受信）
+    // 送信者に応じて相手側フラグと材料を更新
     if (data.type === "selected") {
-      p1_finish_select = false;
-      p1_make_material = data.otherData;
-      if (!p2_finish_select) {
-        // ホスト(p1)のみ決着処理を実行。ゲスト側では実行しない
-        if (GameType === "P2P" && MineTurn === "p1" && typeof finish_done_select === "function") {
-          // 同一ターンの多重実行を防止
-          if (conn && conn._scoredTurn === numTurn) { return; }
-          if (conn) conn._scoredTurn = numTurn;
+      if (data.value === "p1") {
+        p1_finish_select = false;
+        p1_make_material = data.otherData;
+      } else {
+        p2_finish_select = false;
+        p2_make_material = data.otherData;
+      }
+
+      // 両者完了時、ホスト(p1)だけが採点を一度だけ実行
+      if (!p1_finish_select && !p2_finish_select && GameType === "P2P" && MineTurn === "p1") {
+        if (conn && conn._scoredTurn === numTurn) return;
+        if (conn) conn._scoredTurn = numTurn;
+        if (typeof finish_done_select === "function") {
           finish_done_select(p1_make_material, p2_make_material, "p1");
         }
       }
       return;
     }
 
-    // スコア同期
     if (data.type === "pointsData") {
-      // 重複適用防止
       const pjson = JSON.stringify(data);
       if (conn._lastPointsJSON === pjson) return;
       conn._lastPointsJSON = pjson;
-
       document.getElementById("p1_point").innerHTML += `+${data.p1_point - p1_point}`;
       document.getElementById("p2_point").innerHTML += `+${data.p2_point - p2_point}`;
       document.getElementById("p1_explain").innerHTML = data.p1_explain;
@@ -2083,13 +2065,8 @@ async function onPeerData(data) {
       return;
     }
 
-    // ラウンド継続合意
-    if (data.type === "nextIsOK") {
-      is_ok_p1 = true;
-      return;
-    }
+    if (data.type === "nextIsOK") { is_ok_p1 = true; return; }
 
-    // 個別フィールド更新（保険）
     if (data.p1_hand !== undefined) p1_hand = data.p1_hand;
     if (data.deck   !== undefined) deck    = data.deck;
 
@@ -2097,6 +2074,7 @@ async function onPeerData(data) {
     console.error("onPeerData error:", e);
   }
 }
+
 
 
 
@@ -2218,14 +2196,24 @@ function changeTurn(newTurn) {
         }
     }
 }
+// 自分が役を確定したときに呼ぶ
 async function finishSelect() {
-    //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
-        p2_finish_select = false;
-        console.log("complete send selected to other player")
-        conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
+        // 自分側の完了フラグを正しく更新
+        if (MineTurn === "p1") {
+            p1_finish_select = false;
+        } else {
+            p2_finish_select = false;
+        }
+        console.log("complete send selected to other player");
+        conn.send({
+            type: "selected",
+            value: MineTurn,            // 送信者 "p1" or "p2"
+            otherData: p2_make_material // 自分が作った材料
+        });
     }
 }
+
 async function sharePoints() {
     if (conn && conn.open) {
         p1_explain_copy = document.getElementById("p2_explain").textContent
