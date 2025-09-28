@@ -596,42 +596,47 @@ async function p1_action() {
 }
 // p1 exchange card by automation
 async function p1_exchange(targetElem) {
-    console.log("this")
-    // Select a random card index from p1_hand// TODO: from AI.js
-    dropped_cards_p1.push(p1_hand[targetElem]);
-    var exchange_element = p1_hand[targetElem];
-    // Ensure the target card exists and is valid
-    if (!p1_hand[targetElem]) {
-        console.error("Invalid target element in p1_hand.");
-        return;
-    };
-    // Create a new image for the dropped card area
-    
-    const blob = imageCache[elementToNumber[p1_hand[targetElem]]];
+    // 捨てる対象を確定
+    const exchange_element = p1_hand[targetElem];
+    if (!exchange_element) return;
+
+    // 捨て札リスト更新
+    dropped_cards_p1.push(exchange_element);
+
+    // 捨て札に画像を追加
+    const blob = imageCache[elementToNumber[exchange_element]];
     const newImg = new Image();
     newImg.src = URL.createObjectURL(blob);
+    newImg.alt = exchange_element;
     newImg.style.border = "1px solid #000";
     document.getElementById("dropped_area_p1").appendChild(newImg);
-    // Update the player's hand with a new element
+
+    // 手札を引き直し
     const img = document.querySelectorAll("#p1_hand img")[targetElem];
-    if (!img) {
-        console.error("Image element not found in p1_hand.");
-        return;
-    }
-    // Select a new random element and replace the target card
     const newElem = drawCard();
     p1_hand[targetElem] = newElem;
-    // Update the image element's appearance
-    img.alt = newElem;
-    img.style.border = "1px solid #000";
-    // Remove and reapply the 'selected' class to reset the state
-    img.classList.remove("selected");
-    img.classList.add("selected");
-    img.classList.toggle("selected");
-    // Switch the turn to "p2"
-    turn = "p2";
-    checkRon(exchange_element);
+    if (img) {
+        const newBlob = imageCache[elementToNumber[newElem]];
+        img.src = URL.createObjectURL(newBlob);
+        img.alt = newElem;
+        img.style.border = "1px solid #000";
+        img.classList.remove("selected");
+        img.classList.add("selected");
+        img.classList.toggle("selected");
+    }
+
+    // ターンと同期
+    if (GameType === "P2P") {
+        changeTurn("p2");                        // 相手のターンへ
+        shareAction("exchange", exchange_element); // 誰が何を捨てたか送信
+        // P2P では受信側で checkRon を行う
+    } else {
+        // CPU 戦はローカルでロン判定
+        turn = "p2";
+        checkRon(exchange_element);
+    }
 }
+
 // make p1's material when done()
 async function p1_make(predictedMaterialP2) {
     const makeable_material = await search_materials(arrayToObj(p1_hand));
@@ -2020,18 +2025,7 @@ async function onPeerData(data) {
     }
 
     // アクション同期
-    if (data.type === "action") {
-      // 必要なフィールドの受信反映（保険）
-      if (data.deck !== undefined) deck = data.deck;
-
-      if (data.action === "generate") {
-        // 相手の生成要求を反映
-        if (typeof p2_make === "function") p2_make();
-      } else if (data.action === "checkRon") {
-        if (typeof checkRon === "function") checkRon(data.otherData);
-      }
-      return;
-    }
+    if (data.type === "action") { onPeerDataAction(data); return; }
 
     // 選択結果（p1側の選択を受信）
     if (data.type === "selected") {
@@ -2092,6 +2086,41 @@ function onPeerClose() {
   }
 }
 
+function onPeerDataAction(data) {
+  if (!data || data.type !== "action") return;
+
+  if (data.action === "exchange") {
+    // 誰が捨てたか判定（whoが無い旧メッセージへの後方互換も考慮）
+    const who = data.who || (MineTurn === "p1" ? "p2" : "p1");
+
+    // 受信側の山札も同期
+    if (data.deck !== undefined) deck = data.deck;
+
+    // 捨て札配列と描画先を振り分け
+    const areaId = (who === "p1") ? "dropped_area_p1" : "dropped_area_p2";
+    if (who === "p1") dropped_cards_p1.push(data.otherData);
+    else              dropped_cards_p2.push(data.otherData);
+
+    // 画像を追加
+    const blob = imageCache[elementToNumber[data.otherData]];
+    const img  = new Image();
+    img.src = URL.createObjectURL(blob);
+    img.alt = data.otherData;
+    img.style.border = "1px solid #000";
+    document.getElementById(areaId).appendChild(img);
+
+    // 受信側でロン判定
+    checkRon(data.otherData);
+    return;
+  }
+
+  if (data.action === "generate") {
+    p2_make();
+    return;
+  }
+}
+
+
 function shareVariable() {
     if (conn && conn.open) {
         if (MineTurn === "p1") {
@@ -2108,12 +2137,19 @@ function shareVariable() {
     }
 }
 function shareAction(action, otherData) {
-    if (conn && conn.open) {
-        conn.send({ type: "action", action: action, otherData: otherData, deck: deck });
-    } else {
-        console.error("⚠️ 接続が開かれていません！ アクションを送信できません。");
-    }
+  if (conn && conn.open) {
+    conn.send({
+      type: "action",
+      action,
+      otherData,        // 捨てたカード名など
+      deck,
+      who: MineTurn     // "p1" or "p2" を明示
+    });
+  } else {
+    console.error("⚠️ 接続が開かれていません！ アクションを送信できません。");
+  }
 }
+
 function changeTurn(newTurn) {
     //console.log(`🔄 ターン変更: ${newTurn}`);
     if (conn && conn.open) {
