@@ -1997,33 +1997,35 @@ async function sharePoints() {
 
 
 // 両者完了検知→ホストが一度だけ採点とポイント送信
-// 両者完了検知→ホストが一度だけ採点・送信・UI更新
+// 両者完了→ホストが一度だけ採点・送信・UI更新
 function maybeScoreIfBothReady() {
   if (GameType !== "P2P") return;
   if (!conn || !conn._sel) return;
   if (conn._sel.turn !== numTurn) return;
-  if (conn._sel.scored) return;
 
   const bothReady = conn._sel.hostReady && conn._sel.guestReady;
   const isHost = (MineTurn === "p1");
   if (!bothReady || !isHost) return;
 
-  conn._sel.scored = true; // デデュープ
+  if (conn._sel.scored) return;        // デデュープ
+  conn._sel.scored = true;
 
-  // 1) 採点（ホストのみ一度）
-  if (typeof finish_done_select === "function") {
-    finish_done_select(conn._sel.p1_mat, conn._sel.p2_mat, "p1");
-  }
+  doScoreOnce(conn._sel.p1_mat, conn._sel.p2_mat);
+}
 
-  // 2) ホスト自身のUIを確実に更新（ここが追加）
-  if (typeof winnerAndChangeButton === "function") {
-    winnerAndChangeButton();
-  }
-
-  // 3) ゲストへポイント送信（ホストのみ）
-  if (typeof sharePoints === "function") {
-    sharePoints();
-  }
+// 採点トリガをひとまとめ（finish_done_select の後にUI更新と送信を保証）
+function doScoreOnce(p1mat, p2mat) {
+  try {
+    if (typeof finish_done_select === "function") {
+      finish_done_select(p1mat, p2mat, "p1"); // 既存の採点関数に委譲（ホストで一度）
+    }
+    if (typeof winnerAndChangeButton === "function") {
+      winnerAndChangeButton();               // 「次のゲーム」表示を確実に更新
+    }
+    if (typeof sharePoints === "function") {
+      sharePoints();                         // ゲストへポイント配信（ホストのみ送信仕様）
+    }
+  } catch (e) { console.error("doScoreOnce error:", e); }
 }
 
 
@@ -2031,82 +2033,36 @@ function maybeScoreIfBothReady() {
 // 受信データ統合ハンドラ：既存ロジックを集約し、startGameの多重起動を防止
 // 受信処理
 // 受信処理：送信者に応じて正しい側へ反映
+// 受信
 async function onPeerData(data) {
   try {
     if (!data || typeof data !== "object") return;
-    console.log("📩 onPeerData", data);
 
-    if (data.type === "role") {
-      MineTurn = data.value;  // ゲストは "p2"
-      turn = "p1";
-      const genBtn = document.getElementById("generate_button");
-      if (genBtn) genBtn.style.display = (turn === MineTurn) ? "inline" : "none";
-      return;
-    }
-
-    if (data.type === "variables") {
-      const vjson = JSON.stringify(data);
-      if (conn._lastVariablesJSON === vjson) return;
-      conn._lastVariablesJSON = vjson;
-
-      p1_hand = data.p1_hand;
-      deck = data.deck;
-      WIN_POINT = data.win_point;
-      WIN_TURN  = data.win_turn;
-
-      if (typeof loadMaterials === "function" && data.compounds_url) {
-        materials = await loadMaterials(data.compounds_url);
-      }
-      if (typeof setupBoard === "function") setupBoard();
-
-      const modal = document.getElementById("wait_modal");
-      if (modal) modal.style.display = "none";
-
-      if (!conn._gameStarted && typeof startGame === "function") {
-        startGame();
-        conn._gameStarted = true;
-      }
-      return;
-    }
-
-    if (data.type === "turn") {
-      turn = data.value; // "p1" | "p2"
-      const genBtn = document.getElementById("generate_button");
-      if (genBtn) genBtn.style.display = (turn === MineTurn) ? "inline" : "none";
-      return;
-    }
-
-    if (data.type === "action") {
-      if (typeof onPeerDataAction === "function") onPeerDataAction(data);
-      return;
-    }
-
-    // ★ここが主修正：送信者の側に正しく入れる
     if (data.type === "selected") {
-      // ターン単位の状態を初期化
+      // ターン状態を初期化
       if (!conn._sel || conn._sel.turn !== numTurn) {
         conn._sel = { turn: numTurn, hostReady: false, guestReady: false, p1_mat: null, p2_mat: null, scored: false };
       }
 
+      // 送信者の側に正しく反映
       if (data.value === "p1") {
-        // 送信者がp1ならp1側へ
         p1_finish_select = false;
         p1_make_material = data.otherData;
         conn._sel.hostReady = true;
         conn._sel.p1_mat = data.otherData;
       } else {
-        // 送信者がp2ならp2側へ
         p2_finish_select = false;
         p2_make_material = data.otherData;
         conn._sel.guestReady = true;
         conn._sel.p2_mat = data.otherData;
       }
 
-      // 両者完了ならホストのみ採点と送信
-      if (typeof maybeScoreIfBothReady === "function") maybeScoreIfBothReady();
+      // 両者完了チェック
+      maybeScoreIfBothReady();
       return;
     }
 
+    // 既存の他type処理はそのまま
     if (data.type === "pointsData") {
       const pjson = JSON.stringify(data);
       if (conn._lastPointsJSON === pjson) return;
@@ -2114,7 +2070,6 @@ async function onPeerData(data) {
 
       const d1 = data.p1_point - (typeof p1_point === "number" ? p1_point : 0);
       const d2 = data.p2_point - (typeof p2_point === "number" ? p2_point : 0);
-
       const elP1 = document.getElementById("p1_point");
       const elP2 = document.getElementById("p2_point");
       if (elP1 && Number.isFinite(d1) && d1 !== 0) elP1.innerHTML += `+${d1}`;
@@ -2132,18 +2087,31 @@ async function onPeerData(data) {
       return;
     }
 
-    if (data.type === "nextIsOK") {
-      is_ok_p1 = true;
+    // role / variables / turn / action / nextIsOK など既存処理
+    if (data.type === "role") { MineTurn = data.value; turn = "p1"; return; }
+    if (data.type === "variables") {
+      const vjson = JSON.stringify(data);
+      if (conn._lastVariablesJSON === vjson) return;
+      conn._lastVariablesJSON = vjson;
+      p1_hand = data.p1_hand; deck = data.deck; WIN_POINT = data.win_point; WIN_TURN = data.win_turn;
+      if (typeof loadMaterials === "function" && data.compounds_url) { materials = await loadMaterials(data.compounds_url); }
+      if (!conn._gameStarted && typeof startGame === "function") { startGame(); conn._gameStarted = true; }
       return;
     }
+    if (data.type === "turn") {
+      turn = data.value;
+      const genBtn = document.getElementById("generate_button");
+      if (genBtn) genBtn.style.display = (turn === MineTurn) ? "inline" : "none";
+      return;
+    }
+    if (data.type === "action") { if (typeof onPeerDataAction === "function") onPeerDataAction(data); return; }
+    if (data.type === "nextIsOK") { is_ok_p1 = true; return; }
 
     if (data.p1_hand !== undefined) p1_hand = data.p1_hand;
     if (data.deck   !== undefined) deck    = data.deck;
-
-  } catch (e) {
-    console.error("onPeerData error:", e);
-  }
+  } catch (e) { console.error("onPeerData error:", e); }
 }
+
 
 
 
@@ -2272,40 +2240,37 @@ function changeTurn(newTurn) {
 // 自分が「この役でアガる」を押したとき
 async function finishSelect() {
   try {
-    // 自分側フラグ更新
-    if (MineTurn === "p1") {
-      p1_finish_select = false;
-    } else {
-      p2_finish_select = false;
-    }
+    // 自分側フラグ
+    if (MineTurn === "p1") { p1_finish_select = false; } else { p2_finish_select = false; }
 
-    // 自分が作った材料を正しく取得
+    // 自分が作った材料
     const myMaterial = (MineTurn === "p1") ? p1_make_material : p2_make_material;
 
-    // 相手へ自分サイド情報として送る
+    // ターン状態を初期化
+    if (!conn._sel || conn._sel.turn !== numTurn) {
+      conn._sel = { turn: numTurn, hostReady: false, guestReady: false, p1_mat: null, p2_mat: null, scored: false };
+    }
+    if (MineTurn === "p1") { conn._sel.hostReady = true; conn._sel.p1_mat = myMaterial; }
+    else { conn._sel.guestReady = true; conn._sel.p2_mat = myMaterial; }
+
+    // 相手へ通知
     if (conn && conn.open) {
-      conn.send({
-        type: "selected",
-        value: MineTurn,   // "p1" or "p2"（送信者）
-        otherData: myMaterial
-      });
+      conn.send({ type: "selected", value: MineTurn, otherData: myMaterial });
     }
 
-    // ホストなら両者完了をチェックして採点
-    if (typeof maybeScoreIfBothReady === "function") maybeScoreIfBothReady();
-
-  } catch (e) {
-    console.error("finishSelect error:", e);
-  }
+    // 両者完了チェック
+    maybeScoreIfBothReady();
+  } catch (e) { console.error("finishSelect error:", e); }
 }
 
 
 
+
 // ホストのみ送信。二重加算防止
-// ホストのみ送信（既存のままでも可だが、安全のため再掲）
+// スコア送信はホストのみ
 async function sharePoints() {
   if (!(conn && conn.open)) return;
-  if (MineTurn !== "p1") return; // ホストのみ
+  if (MineTurn !== "p1") return;
 
   const p1_explain_copy = document.getElementById("p2_explain").textContent;
   const p2_explain_copy = document.getElementById("p1_explain").textContent;
@@ -2318,6 +2283,7 @@ async function sharePoints() {
     p2_explain: p2_explain_copy
   });
 }
+
 
 
 async function nextIsOK() {
