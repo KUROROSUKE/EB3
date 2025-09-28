@@ -444,15 +444,28 @@ document.getElementById("startButton").addEventListener("click", function() {
     resetGame();
 });
 // reset game state// 置換: resetGame（P2P用フラグ初期化を追加）
+// 置換: resetGame
 function resetGame() {
-  document.getElementById("bottomNav").style.display = "none";
-  p1_hand = []; p2_hand = [];
-  dropped_cards_p1 = []; dropped_cards_p2 = [];
-  p1_selected_card = []; p2_selected_card = [];
+  // UI初期化
+  const bottomNav = document.getElementById("bottomNav");
+  if (bottomNav) bottomNav.style.display = "none";
+
+  // 状態初期化
+  p1_hand = [];
+  p2_hand = [];
+  dropped_cards_p1 = [];
+  dropped_cards_p2 = [];
+  p1_selected_card = [];
+  p2_selected_card = [];
   time = "game";
 
-  if (conn) { conn._lastPointsKey = null; conn._sentTurn = null; }
+  // P2P重複対策フラグの初期化
+  if (typeof conn !== "undefined" && conn) {
+    conn._lastPointsKey = null; // 受信デデュープ用
+    conn._sentTurn = null;      // 同ターン二重送信防止
+  }
 
+  // ターン決定
   if (GameType === "P2P") {
     if (MineTurn === "p1") {
       turn = Math.random() < 0.5 ? "p1" : "p2";
@@ -460,16 +473,31 @@ function resetGame() {
     }
   } else {
     turn = Math.random() < 0.5 ? "p1" : "p2";
-    document.getElementById("generate_button").style.display = "inline";
+    const genBtn = document.getElementById("generate_button");
+    if (genBtn) genBtn.style.display = "inline";
   }
 
-  p1_finish_select = true; p2_finish_select = true;
+  // フロー制御フラグ
+  p1_finish_select = true;
+  p2_finish_select = true;
 
-  document.getElementById("p1_point").textContent = `ポイント：${p1_point}`;
-  document.getElementById("p2_point").textContent = `ポイント：${p2_point}`;
-  document.getElementById("p1_explain").textContent = " ";
-  document.getElementById("p2_explain").textContent = " ";
+  // 表示更新（総計を上書き）
+  const p1El = document.getElementById("p1_point");
+  const p2El = document.getElementById("p2_point");
+  if (p1El) p1El.textContent = `ポイント：${p1_point}`;
+  if (p2El) p2El.textContent = `ポイント：${p2_point}`;
+
+  const p1Ex = document.getElementById("p1_explain");
+  const p2Ex = document.getElementById("p2_explain");
+  if (p1Ex) p1Ex.textContent = " ";
+  if (p2Ex) p2Ex.textContent = " ";
+
+  const doneBtn = document.getElementById("done_button");
+  const nextBtn = document.getElementById("nextButton");
+  if (doneBtn) doneBtn.style.display = "none";
+  if (nextBtn) nextBtn.style.display = "none";
 }
+
 
 
 
