@@ -1996,6 +1996,7 @@ async function sharePoints() {
 
 
 // 両者完了検知→ホストが一度だけ採点とポイント送信
+// 両者完了検知→ホストが一度だけ採点・送信・UI更新
 function maybeScoreIfBothReady() {
   if (GameType !== "P2P") return;
   if (!conn || !conn._sel) return;
@@ -2008,16 +2009,22 @@ function maybeScoreIfBothReady() {
 
   conn._sel.scored = true; // デデュープ
 
+  // 1) 採点（ホストのみ一度）
   if (typeof finish_done_select === "function") {
-    // p1側で一度だけ採点
     finish_done_select(conn._sel.p1_mat, conn._sel.p2_mat, "p1");
   }
 
-  // 明示的にポイント送信
+  // 2) ホスト自身のUIを確実に更新（ここが追加）
+  if (typeof winnerAndChangeButton === "function") {
+    winnerAndChangeButton();
+  }
+
+  // 3) ゲストへポイント送信（ホストのみ）
   if (typeof sharePoints === "function") {
     sharePoints();
   }
 }
+
 
 
 // 受信データ統合ハンドラ：既存ロジックを集約し、startGameの多重起動を防止
