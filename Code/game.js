@@ -461,6 +461,7 @@ function resetGame() {
             changeTurn(turn);
         }
     } else {
+        turn = Math.random() <= 0.5 ? "p1" : "p2";
         document.getElementById("generate_button").style.display = "inline";
     }
     p1_finish_select = true;
@@ -3093,4 +3094,5 @@ function launchConfetti() {
       origin: { y: 0.6 }    // 発生位置（画面中央寄り）
     });
   }
+
 }
