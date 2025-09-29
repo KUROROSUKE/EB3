@@ -422,11 +422,18 @@ let JSZip;
 
 // initialize hand
 function random_hand() {
-    for (let i = 0; i < card_num; i++) {
-        p1_hand.push(drawCard());
-        p2_hand.push(drawCard());
-    };
+  // deck 防御初期化
+  if (!Array.isArray(window.deck)) window.deck = [];
+  if (deck.length === 0) {
+    deck = Array.isArray(elements) ? [...elements, ...elements] : [];
+    if (typeof shuffle === "function") deck = shuffle(deck);
+  }
+  for (let i = 0; i < card_num; i++) {
+    p1_hand.push(drawCard());
+    p2_hand.push(drawCard());
+  }
 }
+
 // start game with CPU
 document.getElementById("startButton").addEventListener("click", function() {
     document.getElementById("startScreen").style.display = "none";
@@ -446,6 +453,9 @@ document.getElementById("startButton").addEventListener("click", function() {
 // reset game state// 置換: resetGame（P2P用フラグ初期化を追加）
 // 置換: resetGame
 function resetGame() {
+  // deck 防御初期化
+  if (!Array.isArray(window.deck)) window.deck = [];
+
   // --- UI 初期化 ---
   const bottomNav = document.getElementById("bottomNav");
   if (bottomNav) bottomNav.style.display = "none";
@@ -457,112 +467,81 @@ function resetGame() {
   if (nextBtn) nextBtn.style.display = "none";
 
   // --- 状態初期化 ---
-  p1_select_card = null;
-  p2_select_card = null;
-  p1_finish_select = true;
-  p2_finish_select = true;
-  is_ok_p1 = false;
-  is_ok_p2 = false;
+  p1_hand = [];
+  p2_hand = [];
+  dropped_cards_p1 = [];
+  dropped_cards_p2 = [];
+  p1_selected_card = [];
+  p2_selected_card = [];
+  time = "game";
 
-  // スコア重複防止
-  window._lastScoredTurn = null;
+  // P2P 重複対策
   if (typeof conn !== "undefined" && conn) {
-    conn._lastPointsJSON   = null;
-    conn._sentTurn         = null;
-    conn._shownNextForTurn = null;
-    conn._scoredTurn       = null;
+    conn._lastPointsKey     = null;
+    conn._sentTurn          = null;
+    conn._shownNextForTurn  = null;
   }
 
-  // --- デッキ準備 ---
-  if (!Array.isArray(deck) || deck.length === 0) {
+  // --- 山札 ---
+  const isP2P   = (GameType === "P2P");
+  const isGuest = (MineTurn === "p2");
+  const guestHasDeck = isP2P && isGuest && Array.isArray(deck) && deck.length > 0;
+  if (!guestHasDeck) {
     deck = Array.isArray(elements) ? [...elements, ...elements] : [];
     if (typeof shuffle === "function") deck = shuffle(deck);
   }
 
-  // --- P2Pかどうか ---
-  const isP2P  = (GameType === "P2P");
-  const isHost = (isP2P && MineTurn === "p1");
-
+  // --- ターン ---
   if (isP2P) {
-    if (genBtn) genBtn.style.display = "none";
-
-    if (isHost) {
-      // ホスト: 必ず配って描画し、モーダルを閉じ、ターン確定してから送信
-      dealHands();
-      renderHands();
-
-      const modal = document.getElementById("PeerModal");
-      if (modal) modal.style.display = "none";
-
-      // ターン確定とUI反映
+    if (MineTurn === "p1") {
       turn = Math.random() < 0.5 ? "p1" : "p2";
       if (typeof changeTurn === "function") changeTurn(turn);
-
-      // 二重開始防止フラグ
-      if (conn) conn._gameStarted = true;
-
-      // 相手に共有
-      try {
-        if (conn && conn.open) {
-          conn.send({
-            type: "variables",
-            deck,
-            win_point: WIN_POINT,
-            win_turn: WIN_TURN,
-            p1_hand,
-            p2_hand
-          });
-        }
-      } catch {}
-    } else {
-      // ゲスト: 受信前の空白を避けるため仮表示
-      if (!Array.isArray(p1_hand) || p1_hand.length === 0 ||
-          !Array.isArray(p2_hand) || p2_hand.length === 0) {
-        dealHands();
-      }
-      renderHands();
     }
+    if (genBtn) genBtn.style.display = "none";
   } else {
-    // オフライン/CPU
-    dealHands();
-    renderHands();
-    if (genBtn) genBtn.style.display = "inline";
     turn = Math.random() < 0.5 ? "p1" : "p2";
-    if (typeof changeTurn === "function") changeTurn(turn);
+    if (genBtn) genBtn.style.display = "inline";
   }
 
-  // --- クリア表示 ---
+  // --- 画面クリア ---
+  const p1H = document.getElementById("p1_hand");
+  const p2H = document.getElementById("p2_hand");
   const da1 = document.getElementById("dropped_area_p1");
   const da2 = document.getElementById("dropped_area_p2");
-  const sc1 = document.getElementById("p1_select_card");
-  const sc2 = document.getElementById("p2_select_card");
-  const prd = document.getElementById("predictResult");
-  if (da1) da1.textContent = "";
-  if (da2) da2.textContent = "";
-  if (sc1) sc1.textContent = "";
-  if (sc2) sc2.textContent = "";
-  if (prd) prd.textContent = "";
+  if (p1H) p1H.innerHTML = "";
+  if (p2H) p2H.innerHTML = "";
+  if (da1) da1.innerHTML = "";
+  if (da2) da2.innerHTML = "";
 
+  // --- 配札と描画 ---
+  if (typeof random_hand === "function") random_hand();
+  if (typeof view_p1_hand === "function") view_p1_hand();
+  if (typeof view_p2_hand === "function") view_p2_hand();
+
+  // --- 表示更新 ---
   const p1Pt = document.getElementById("p1_point");
   const p2Pt = document.getElementById("p2_point");
   const p1Ex = document.getElementById("p1_explain");
   const p2Ex = document.getElementById("p2_explain");
+  const prd  = document.getElementById("predictResult");
   if (p1Pt) p1Pt.textContent = `ポイント：${Number(p1_point) || 0}`;
   if (p2Pt) p2Pt.textContent = `ポイント：${Number(p2_point) || 0}`;
   if (p1Ex) p1Ex.textContent = " ";
   if (p2Ex) p2Ex.textContent = " ";
+  if (prd)  prd.textContent  = " ";
   if (hintBtn) hintBtn.style.display = "inline";
 }
 
 
 
+
 function dealHands(handSize = 5) {
-  // デッキが無ければ生成
-  if (!Array.isArray(deck) || deck.length === 0) {
+  // deck 防御初期化
+  if (!Array.isArray(window.deck)) window.deck = [];
+  if (deck.length === 0) {
     deck = Array.isArray(elements) ? [...elements, ...elements] : [];
     if (typeof shuffle === "function") deck = shuffle(deck);
   }
-  // 配り直し
   p1_hand = [];
   p2_hand = [];
   for (let i = 0; i < handSize && deck.length >= 2; i++) {
@@ -570,6 +549,7 @@ function dealHands(handSize = 5) {
     p2_hand.push(deck.pop());
   }
 }
+
 
 function renderHands() {
   const p1H = document.getElementById("p1_hand");
@@ -1266,17 +1246,20 @@ async function no_draw_card() {
 }
 // get next card (if no card in deck, then done()) from this function.
 function drawCard() {
-    if (deck.length > 0) {
-        return deck.pop()
+  // deck 防御初期化
+  if (!Array.isArray(window.deck)) window.deck = [];
+  if (deck.length > 0) {
+    return deck.pop();
+  } else {
+    if (time = "make", GameType=="CPU") {
+      done("no-draw");
     } else {
-        if (time = "make", GameType=="CPU"){
-            done("no-draw")
-        } else {
-            shareAction("generate");
-            no_draw_card();
-        }
+      shareAction("generate");
+      no_draw_card();
     }
+  }
 }
+
 // count creatable materials for CanCreateMaterial()
 function removeCards(tmpDeck, allCards) {
     // allCards の出現回数をカウント
