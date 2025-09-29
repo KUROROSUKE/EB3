@@ -952,6 +952,7 @@ async function get_dora() {
     return element[Math.round(Math.random()*23)];
 }
 // done process. finally, next game button or finish game button.
+// done process. finally, next game button or finish game button.
 async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = false) {
   // UI隠し
   const ronBtn  = document.getElementById("ron_button");
@@ -1035,14 +1036,8 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
           p1_point = Number(p1_point || 0) + thisGame_p1_point;
           p2_point = Number(p2_point || 0) + thisGame_p2_point;
 
-          // 視点マッピングしてUI更新（自分＝p2_point, 相手＝p1_point）
-          const selfIsP1 = (MineTurn === "p1");
-          const selfTotal = selfIsP1 ? p1_point : p2_point;
-          const oppTotal  = selfIsP1 ? p2_point : p1_point;
-          const selfEl = document.getElementById("p2_point");
-          const oppEl  = document.getElementById("p1_point");
-          if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
-          if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
+          // UI更新（視点マッピング）
+          setPointsUI(p1_point, p2_point);
 
           // 説明
           const p1Ex = document.getElementById("p1_explain");
@@ -1077,13 +1072,7 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     p1_point = Number(p1_point || 0) + thisGame_p1_point;
     p2_point = Number(p2_point || 0) + thisGame_p2_point;
 
-    const selfIsP1 = (MineTurn === "p1");
-    const selfTotal = selfIsP1 ? p1_point : p2_point;
-    const oppTotal  = selfIsP1 ? p2_point : p1_point;
-    const selfEl = document.getElementById("p2_point");
-    const oppEl  = document.getElementById("p1_point");
-    if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
-    if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
+    setPointsUI(p1_point, p2_point);
 
     const p1Ex = document.getElementById("p1_explain");
     const p2Ex = document.getElementById("p2_explain");
@@ -1106,9 +1095,13 @@ async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = fals
     }
   } catch (_) {}
 
+  // 直後の当番に合わせて「精製」ボタンを更新（安全呼び出し）
+  try { if (typeof showGenerateForCurrentPlayer === "function") showGenerateForCurrentPlayer(); } catch (_) {}
+
   // UX補助（存在時のみ）
   try { if (typeof scrollToBoardTop === "function") scrollToBoardTop(); } catch (_) {}
 }
+
 
 
 // win check (p1 win => return "p1", p2 win => return "p2". And p1 and p2 don't win => return null)
@@ -2162,6 +2155,13 @@ async function onPeerData(data) {
   }
 }
 
+function showGenerateForCurrentPlayer() {
+  const btn = document.getElementById("generate_button"); // 「精製」ボタンのID
+  if (!btn) return;
+  // 自分のターンだけ表示。相手ターンは隠す。
+  const isMyTurn = (MineTurn === CurrentTurnPlayer); // CurrentTurnPlayer は "p1"/"p2" を更新している想定
+  btn.style.display = isMyTurn ? "inline-block" : "none";
+}
 
 
 // 切断時の後片付け
@@ -2257,6 +2257,7 @@ function appendToDiscard(who, cardName) {
 }
 
 // 追加: 合計ポイントをUIに反映（視点マッピング）
+// 自分視点で合計ポイントをUIに反映
 function setPointsUI(totalP1, totalP2) {
   const selfIsP1 = (MineTurn === "p1");
   const selfTotal = selfIsP1 ? totalP1 : totalP2;
@@ -2267,6 +2268,7 @@ function setPointsUI(totalP1, totalP2) {
   if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
   if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
 }
+
 
 
 // 置換: shareVariable
@@ -2331,30 +2333,31 @@ async function finishSelect() {
 }
 
 function handlePointsData(data) {
-    if (!data || data.type !== "pointsData") return;
-    // 自送は無視
-    if (GameType === "P2P" && MineTurn === data.from) return;
+  if (!data || data.type !== "pointsData") return;
 
-    // デデュープ: 同一ターン同一総計は破棄
-    const key = JSON.stringify({ t: data.turn, p1: data.p1_total, p2: data.p2_total });
-    if (conn && conn._lastPointsKey === key) return;
-    if (conn) conn._lastPointsKey = key;
+  // 自送は無視
+  if (GameType === "P2P" && MineTurn === data.from) return;
 
-    // 総計を上書き（ゲスト側）
-    // 総計を上書き
-    p1_point = Number(data.p1_total) || 0;
-    p2_point = Number(data.p2_total) || 0;
+  // デデュープ
+  const key = JSON.stringify({ t: data.turn, p1: data.p1_total, p2: data.p2_total });
+  if (conn && conn._lastPointsKey === key) return;
+  if (conn) conn._lastPointsKey = key;
 
-    // 置換: 視点マッピングしてUI更新
-    setPointsUI(p1_point, p2_point);
+  // 総計を上書き
+  p1_point = Number(data.p1_total) || 0;
+  p2_point = Number(data.p2_total) || 0;
 
-    // 説明も上書き
-    if (data.p1_explain) document.getElementById("p1_explain").textContent = data.p1_explain;
-    if (data.p2_explain) document.getElementById("p2_explain").textContent = data.p2_explain;
+  // 自分視点でUI更新（ゲスト側もこれで更新される）
+  setPointsUI(p1_point, p2_point);
 
-    // 「次のゲーム」表示を同期
-    maybeShowNextButton();
+  // 説明
+  if (data.p1_explain) document.getElementById("p1_explain").textContent = data.p1_explain;
+  if (data.p2_explain) document.getElementById("p2_explain").textContent = data.p2_explain;
+
+  // 次へボタン同期
+  if (typeof winnerAndChangeButton === "function") winnerAndChangeButton();
 }
+
 
 
 
