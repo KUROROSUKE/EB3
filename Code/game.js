@@ -474,50 +474,64 @@ function resetGame() {
   }
 
   // --- デッキ準備 ---
-  const needNewDeck = !Array.isArray(deck) || deck.length === 0;
-  if (needNewDeck) {
+  if (!Array.isArray(deck) || deck.length === 0) {
     deck = Array.isArray(elements) ? [...elements, ...elements] : [];
     if (typeof shuffle === "function") deck = shuffle(deck);
   }
 
-  // --- P2P: ホストが配って送る。ゲストは受信待ちでもローカル描画は行う ---
-  if (GameType === "P2P") {
-    if (MineTurn === "p1") {
+  // --- P2Pかどうか ---
+  const isP2P  = (GameType === "P2P");
+  const isHost = (isP2P && MineTurn === "p1");
+
+  if (isP2P) {
+    if (genBtn) genBtn.style.display = "none";
+
+    if (isHost) {
+      // ホスト: 必ず配って描画し、モーダルを閉じ、ターン確定してから送信
       dealHands();
-      if (conn && conn.open) {
-        conn.send({
-          type: "variables",
-          deck,
-          win_point: WIN_POINT,
-          win_turn: WIN_TURN,
-          p1_hand,
-          p2_hand
-        });
-      }
+      renderHands();
+
+      const modal = document.getElementById("PeerModal");
+      if (modal) modal.style.display = "none";
+
+      // ターン確定とUI反映
+      turn = Math.random() < 0.5 ? "p1" : "p2";
+      if (typeof changeTurn === "function") changeTurn(turn);
+
+      // 二重開始防止フラグ
+      if (conn) conn._gameStarted = true;
+
+      // 相手に共有
+      try {
+        if (conn && conn.open) {
+          conn.send({
+            type: "variables",
+            deck,
+            win_point: WIN_POINT,
+            win_turn: WIN_TURN,
+            p1_hand,
+            p2_hand
+          });
+        }
+      } catch {}
     } else {
-      // ゲスト側でも空表示にならないよう一時的に配っておく
+      // ゲスト: 受信前の空白を避けるため仮表示
       if (!Array.isArray(p1_hand) || p1_hand.length === 0 ||
           !Array.isArray(p2_hand) || p2_hand.length === 0) {
         dealHands();
       }
+      renderHands();
     }
-    if (genBtn) genBtn.style.display = "none";
   } else {
     // オフライン/CPU
     dealHands();
+    renderHands();
     if (genBtn) genBtn.style.display = "inline";
-  }
-
-  // --- 描画 ---
-  renderHands();
-
-  // --- ターン決定 ---
-  if (MineTurn === "p1" || GameType !== "P2P") {
     turn = Math.random() < 0.5 ? "p1" : "p2";
     if (typeof changeTurn === "function") changeTurn(turn);
   }
 
-  // --- その他クリア ---
+  // --- クリア表示 ---
   const da1 = document.getElementById("dropped_area_p1");
   const da2 = document.getElementById("dropped_area_p2");
   const sc1 = document.getElementById("p1_select_card");
@@ -539,6 +553,7 @@ function resetGame() {
   if (p2Ex) p2Ex.textContent = " ";
   if (hintBtn) hintBtn.style.display = "inline";
 }
+
 
 
 function dealHands(handSize = 5) {
@@ -582,19 +597,30 @@ function returnToStartScreen() {
     document.getElementById("inGameQuest").style.display = "none";
 }
 function startGame() {
-  dealHands();
+  // 既に手札が無い/不足なら配る
+  if (!Array.isArray(p1_hand) || !Array.isArray(p2_hand) || p1_hand.length === 0 || p2_hand.length === 0) {
+    dealHands();
+  }
   renderHands();
 
-  // ターン表示とボタン
-  const genBtn = document.getElementById("generate_button");
-  if (genBtn) genBtn.style.display = (GameType === "P2P") ? "none" : "inline";
+  const modal = document.getElementById("PeerModal");
+  if (modal) modal.style.display = "none";
 
-  // 先手設定が未確定ならランダム
+  const genBtn = document.getElementById("generate_button");
+  if (GameType === "P2P") {
+    if (genBtn) genBtn.style.display = "none";
+  } else {
+    if (genBtn) genBtn.style.display = "inline";
+  }
+
   if (turn !== "p1" && turn !== "p2") {
     turn = Math.random() < 0.5 ? "p1" : "p2";
   }
   if (typeof changeTurn === "function") changeTurn(turn);
+
+  if (typeof conn !== "undefined" && conn) conn._gameStarted = true;
 }
+
 
 
 
