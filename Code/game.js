@@ -952,181 +952,164 @@ async function get_dora() {
     return element[Math.round(Math.random()*23)];
 }
 // done process. finally, next game button or finish game button.
-// done process. finally, next game button or finish game button.
 async function done(who, ronMaterial, droppedCard, p1_ron = false, p2_ron = false) {
-    console.log(ronMaterial);
+  // UI隠し
+  const ronBtn  = document.getElementById("ron_button");
+  const hintBtn = document.getElementById("hint_button");
+  const hintBox = document.getElementById("hintContainer");
+  if (ronBtn)  ronBtn.style.display  = "none";
+  if (hintBtn) hintBtn.style.display = "none";
+  if (hintBox) hintBox.style.display = "none";
 
-    // UI: ロン・ヒント系は隠す
-    const ronBtn  = document.getElementById("ron_button");
-    const hintBtn = document.getElementById("hint_button");
-    const hintBox = document.getElementById("hintContainer");
-    if (ronBtn)  ronBtn.style.display  = "none";
-    if (hintBtn) hintBtn.style.display = "none";
-    if (hintBox) hintBox.style.display = "none";
+  // 生成結果
+  const p2_make_material = await p2_make(); // {a,b,c,d,e,f}
+  const predictedMaterialP2 = await runModel(who === "p1" ? 0 : 1, p2_make_material.f);
+  const p1_make_material = p1_ron ? ronMaterial : await p1_make(predictedMaterialP2); // [{a,b,c,d,e}]
 
-    // 生成結果の取得
-    const p2_make_material = await p2_make(); // {a,b,c,d,e,f}
-    let predictedMaterialP2 = await runModel(who === "p1" ? 0 : 1, p2_make_material.f);
-    const p1_make_material = p1_ron ? ronMaterial : await p1_make(predictedMaterialP2); // [{a,b,c,d,e}]
-    console.log(p1_make_material);
-
-    // 手札更新
-    try {
-        p1_selected_card.push(...dictToArray(p1_make_material[0].d));
-        const idx = p1_selected_card.indexOf(droppedCard);
-        if (idx >= 0) p1_selected_card.splice(idx, 1);
-    } catch (e) {
-        console.warn("p1_selected_card update failed:", e);
+  // 手札更新
+  try {
+    if (p1_make_material && p1_make_material[0] && p1_make_material[0].d) {
+      p1_selected_card.push(...dictToArray(p1_make_material[0].d));
     }
+    const idx = p1_selected_card.indexOf(droppedCard);
+    if (idx >= 0) p1_selected_card.splice(idx, 1);
+  } catch (_) {}
 
-    // ドラ
-    const dora = await get_dora();
-    console.log(`ドラ: ${dora}`);
+  // ドラ
+  const dora = await get_dora();
 
-    // 基本点
-    let thisGame_p2_point = Number(p2_make_material.c) || 0;
-    let thisGame_p1_point = Number(p1_make_material[0].c) || 0;
+  // 基本点
+  let thisGame_p2_point = Number(p2_make_material?.c || 0);
+  let thisGame_p1_point = Number(p1_make_material?.[0]?.c || 0);
 
-    // 有利生成物ボーナス
-    try {
-        if (Array.isArray(p2_make_material.e) && p2_make_material.e.includes(p1_make_material[0].b)) {
-            thisGame_p2_point *= (1.5 + Math.random() / 2);
-        } else if (Array.isArray(p1_make_material[0].e) && p1_make_material[0].e.includes(p2_make_material.b)) {
-            thisGame_p1_point *= (1.5 + Math.random() / 2);
-        }
-    } catch (_) {}
-
-    // ドラボーナス
-    try {
-        const p2Keys = Object.keys(p2_make_material.d || {});
-        const p1Keys = Object.keys(p1_make_material[0].d || {});
-        if (p2Keys.includes(dora)) {
-            thisGame_p2_point *= 1.5;
-        } else if (p1Keys.includes(dora)) {
-            thisGame_p1_point *= 1.5;
-        }
-    } catch (_) {}
-
-    // ロン時の補正
-    if (p1_ron || p2_ron) {
-        if (who === "p2") {
-            thisGame_p2_point /= 1.2;
-        } else {
-            thisGame_p1_point /= 1.2;
-        }
+  // 有利生成物ボーナス
+  try {
+    if (Array.isArray(p2_make_material?.e) && p2_make_material.e.includes(p1_make_material[0].b)) {
+      thisGame_p2_point *= (1.5 + Math.random() / 2);
+    } else if (Array.isArray(p1_make_material?.[0]?.e) && p1_make_material[0].e.includes(p2_make_material.b)) {
+      thisGame_p1_point *= (1.5 + Math.random() / 2);
     }
+  } catch (_) {}
 
-    // 先手・後手などの最終補正（既存仕様に合わせる）
-    if (who === "p2") {
-        thisGame_p1_point /= 1.5;
+  // ドラボーナス
+  try {
+    const p2Keys = Object.keys(p2_make_material?.d || {});
+    const p1Keys = Object.keys(p1_make_material?.[0]?.d || {});
+    if (p2Keys.includes(dora)) {
+      thisGame_p2_point *= 1.5;
+    } else if (p1Keys.includes(dora)) {
+      thisGame_p1_point *= 1.5;
+    }
+  } catch (_) {}
+
+  // ロン補正
+  if (p1_ron || p2_ron) {
+    if (who === "p2") thisGame_p2_point /= 1.2;
+    else thisGame_p1_point /= 1.2;
+  }
+
+  // 先手・後手の最終補正（既存仕様）
+  if (who === "p2") thisGame_p1_point /= 1.5;
+  else thisGame_p2_point /= 1.5;
+
+  // 丸め
+  thisGame_p2_point = Math.round(thisGame_p2_point);
+  thisGame_p1_point = Math.round(thisGame_p1_point);
+
+  // 開発用ベースボーナス（存在時のみ）
+  try { if (typeof base_point_bonus !== "undefined" && base_point_bonus) thisGame_p2_point += thisGame_p2_point; } catch (_) {}
+
+  // 説明テキスト
+  const p1Explain = `生成物質：${p1_make_material?.[0]?.a ?? ""}, 組成式：${p1_make_material?.[0]?.b ?? ""}`;
+  const p2Explain = `生成物質：${p2_make_material?.a ?? ""}, 組成式：${p2_make_material?.b ?? ""}`;
+
+  // 反映と通信
+  if (GameType === "P2P") {
+    if (MineTurn === "p1") {
+      // ホストだけが1回だけ加点して送信
+      if (typeof conn !== "undefined" && conn && conn.open) {
+        if (conn._scoredTurn !== numTurn) {
+          conn._scoredTurn = numTurn;
+
+          // 総計
+          p1_point = Number(p1_point || 0) + thisGame_p1_point;
+          p2_point = Number(p2_point || 0) + thisGame_p2_point;
+
+          // 視点マッピングしてUI更新（自分＝p2_point, 相手＝p1_point）
+          const selfIsP1 = (MineTurn === "p1");
+          const selfTotal = selfIsP1 ? p1_point : p2_point;
+          const oppTotal  = selfIsP1 ? p2_point : p1_point;
+          const selfEl = document.getElementById("p2_point");
+          const oppEl  = document.getElementById("p1_point");
+          if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
+          if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
+
+          // 説明
+          const p1Ex = document.getElementById("p1_explain");
+          const p2Ex = document.getElementById("p2_explain");
+          if (p1Ex) p1Ex.textContent = p1Explain;
+          if (p2Ex) p2Ex.textContent = p2Explain;
+
+          // ゲストへ送信（1回）
+          conn.send({
+            type: "pointsData",
+            turn: numTurn,
+            from: "p1",
+            p1_total: p1_point,
+            p2_total: p2_point,
+            p1_explain: p1Explain,
+            p2_explain: p2Explain
+          });
+
+          // 次のゲームボタンを同期表示
+          if (typeof maybeShowNextButton === "function") maybeShowNextButton();
+        }
+      }
     } else {
-        thisGame_p2_point /= 1.5;
+      // ゲストは加点しない。説明のみ上書き可。ポイントは受信で上書き。
+      const p1Ex = document.getElementById("p1_explain");
+      const p2Ex = document.getElementById("p2_explain");
+      if (p1Ex) p1Ex.textContent = p1Explain;
+      if (p2Ex) p2Ex.textContent = p2Explain;
     }
+  } else {
+    // オフライン/CPUはローカル反映
+    p1_point = Number(p1_point || 0) + thisGame_p1_point;
+    p2_point = Number(p2_point || 0) + thisGame_p2_point;
 
-    // 端数調整
-    thisGame_p2_point = Math.round(thisGame_p2_point);
-    thisGame_p1_point = Math.round(thisGame_p1_point);
+    const selfIsP1 = (MineTurn === "p1");
+    const selfTotal = selfIsP1 ? p1_point : p2_point;
+    const oppTotal  = selfIsP1 ? p2_point : p1_point;
+    const selfEl = document.getElementById("p2_point");
+    const oppEl  = document.getElementById("p1_point");
+    if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
+    if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
 
-    // 開発用ベースボーナス（既存フラグがある場合のみ）
-    try {
-        if (typeof base_point_bonus !== "undefined" && base_point_bonus) {
-            thisGame_p2_point += thisGame_p2_point;
-        }
-    } catch (_) {}
+    const p1Ex = document.getElementById("p1_explain");
+    const p2Ex = document.getElementById("p2_explain");
+    if (p1Ex) p1Ex.textContent = p1Explain;
+    if (p2Ex) p2Ex.textContent = p2Explain;
 
-    // スコア反映と通信
-    const p1Explain = `生成物質：${(p1_make_material[0] || {}).a}, 組成式：${(p1_make_material[0] || {}).b}`;
-    const p2Explain = `生成物質：${p2_make_material.a}, 組成式：${p2_make_material.b}`;
+    if (typeof maybeShowNextButton === "function") maybeShowNextButton();
+  }
 
-    if (GameType === "P2P") {
-        // ホストのみ加点し送信（1ゲーム＝1回）
-        if (MineTurn === "p1") {
-            if (typeof conn !== "undefined" && conn && conn.open) {
-                // 二重送信防止
-                if (conn._scoredTurn !== numTurn) {
-                    conn._scoredTurn = numTurn;
+  // クエストチェック（CPU戦でプレイヤー行動時）
+  try { if (who === "p2") await checkQuest(p2_make_material, thisGame_p2_point); } catch (_) {}
 
-                    // 総計更新（ホスト）
-                    p1_point = Number(p1_point || 0) + thisGame_p1_point;
-                    p2_point = Number(p2_point || 0) + thisGame_p2_point;
-
-                    // 画面更新（ホスト）
-                    const p1El = document.getElementById("p1_point");
-                    const p2El = document.getElementById("p2_point");
-                    if (p1El) p1El.textContent = `ポイント：${p1_point}`;
-                    if (p2El) p2El.textContent = `ポイント：${p2_point}`;
-                    const p1Ex = document.getElementById("p1_explain");
-                    const p2Ex = document.getElementById("p2_explain");
-                    if (p1Ex) p1Ex.textContent = p1Explain;
-                    if (p2Ex) p2Ex.textContent = p2Explain;
-
-                    // ゲストへ1回だけ送信
-                    conn.send({
-                        type: "pointsData",
-                        turn: numTurn,
-                        from: "p1",
-                        p1_total: p1_point,
-                        p2_total: p2_point,
-                        p1_explain: p1Explain,
-                        p2_explain: p2Explain
-                    });
-
-                    // 次ゲームボタンの同期表示
-                    maybeShowNextButton();
-                }
-            }
-        } else {
-            // ゲスト側は加点しない。説明だけローカル上書き可。
-            const p1Ex = document.getElementById("p1_explain");
-            const p2Ex = document.getElementById("p2_explain");
-            if (p1Ex) p1Ex.textContent = p1Explain;
-            if (p2Ex) p2Ex.textContent = p2Explain;
-            // ポイントはホストからの pointsData 受信で上書きされる
-        }
-    } else {
-        // オフライン/CPU: ローカル反映
-        p1_point = Number(p1_point || 0) + thisGame_p1_point;
-        p2_point = Number(p2_point || 0) + thisGame_p2_point;
-
-        const p1El = document.getElementById("p1_point");
-        const p2El = document.getElementById("p2_point");
-        // 既存UI仕様に合わせて加算表記を追記
-        if (p1El) p1El.innerHTML += `+${thisGame_p1_point}`;
-        if (p2El) p2El.innerHTML += `+${thisGame_p2_point}`;
-
-        const p1Ex = document.getElementById("p1_explain");
-        const p2Ex = document.getElementById("p2_explain");
-        if (p1Ex) p1Ex.innerHTML = p1Explain;
-        if (p2Ex) p2Ex.innerHTML = p2Explain;
-
-        // 次ゲームボタン表示
-        maybeShowNextButton();
+  // 学習
+  try {
+    if (typeof IsTraining !== "undefined" && IsTraining) {
+      const generatedMaterialIndex = p2_make_material?.f;
+      await addTrainingData(p2_hand, generatedMaterialIndex, who === "p1" ? 0 : 1);
+      await trainModel();
+      await incrementMaterialCount(p2_make_material?.a);
     }
+  } catch (_) {}
 
-    // クエスト達成チェック（CPU戦かつプレイヤー行動時）
-    try {
-        if (who === "p2") {
-            await checkQuest(p2_make_material, thisGame_p2_point);
-        }
-    } catch (e) {
-        console.warn("checkQuest failed:", e);
-    }
-
-    // 学習処理
-    try {
-        if (typeof IsTraining !== "undefined" && IsTraining) {
-            const generatedMaterialIndex = p2_make_material.f;
-            await addTrainingData(p2_hand, generatedMaterialIndex, who === "p1" ? 0 : 1);
-            await trainModel();
-            await incrementMaterialCount(p2_make_material.a);
-        }
-    } catch (e) {
-        console.warn("training pipeline failed:", e);
-    }
-
-    // 画面を盤面先頭へ（既存のUX補助がある場合）
-    try { scrollToBoardTop && scrollToBoardTop(); } catch (_) {}
+  // UX補助（存在時のみ）
+  try { if (typeof scrollToBoardTop === "function") scrollToBoardTop(); } catch (_) {}
 }
+
 
 // win check (p1 win => return "p1", p2 win => return "p2". And p1 and p2 don't win => return null)
 async function win_check() {
@@ -2075,6 +2058,7 @@ function applyAndBroadcastScore({ who, p1_add, p2_add, p1_explain, p2_explain })
   const p2El = document.getElementById("p2_point");
   if (p1El) p1El.textContent = `ポイント：${p1_point}`;
   if (p2El) p2El.textContent = `ポイント：${p2_point}`;
+  setPointsUI(p1_point, p2_point);
   if (p1_explain) document.getElementById("p1_explain").textContent = p1_explain;
   if (p2_explain) document.getElementById("p2_explain").textContent = p2_explain;
 
@@ -2161,9 +2145,8 @@ async function onPeerData(data) {
     if (data.type === "pointsData") { handlePointsData(data); return; }
 
     if (data.type === "showNext") {
-    // 同一ターンでの多重表示を抑止
-        if (!conn || conn._shownNextForTurn === data.turn) return;
-        conn._shownNextForTurn = data.turn;
+        if (conn && conn._shownNextForTurn === data.turn) return;
+        if (conn) conn._shownNextForTurn = data.turn;
         winnerAndChangeButton();
         return;
     }
@@ -2252,13 +2235,17 @@ function onPeerDataAction(data) {
 
 
 // 自他どちらの捨て札でも1本化して描画・配列更新
+// 置換: 自分視点で捨て札エリアを決めて描画
 function appendToDiscard(who, cardName) {
-  const areaId = who === "p1" ? "dropped_area_p1" : "dropped_area_p2";
+  // 自分側か判定（MineTurn が自分の論理ID）
+  const isSelf = (who === MineTurn);
+  const areaId = isSelf ? "dropped_area_p2" : "dropped_area_p1";
   const area = document.getElementById(areaId);
   if (!area || !cardName) return;
 
-  if (who === "p1") (window.dropped_cards_p1 ||= []).push(cardName);
-  else              (window.dropped_cards_p2 ||= []).push(cardName);
+  // 配列も自分視点で分ける
+  if (isSelf) (window.dropped_cards_self ||= []).push(cardName);
+  else        (window.dropped_cards_opp  ||= []).push(cardName);
 
   const blob = imageCache[elementToNumber[cardName]];
   if (!blob) return;
@@ -2268,6 +2255,19 @@ function appendToDiscard(who, cardName) {
   img.style.border = "1px solid #000";
   area.appendChild(img);
 }
+
+// 追加: 合計ポイントをUIに反映（視点マッピング）
+function setPointsUI(totalP1, totalP2) {
+  const selfIsP1 = (MineTurn === "p1");
+  const selfTotal = selfIsP1 ? totalP1 : totalP2;
+  const oppTotal  = selfIsP1 ? totalP2 : totalP1;
+
+  const selfEl = document.getElementById("p2_point"); // 自分
+  const oppEl  = document.getElementById("p1_point"); // 相手
+  if (selfEl) selfEl.textContent = `ポイント：${selfTotal}`;
+  if (oppEl)  oppEl.textContent  = `ポイント：${oppTotal}`;
+}
+
 
 // 置換: shareVariable
 // 置換: shareVariable
@@ -2331,25 +2331,29 @@ async function finishSelect() {
 }
 
 function handlePointsData(data) {
-  if (!data || data.type !== "pointsData") return;
-  // 自送は無視
-  if (GameType === "P2P" && MineTurn === data.from) return;
+    if (!data || data.type !== "pointsData") return;
+    // 自送は無視
+    if (GameType === "P2P" && MineTurn === data.from) return;
 
-  // デデュープ: 同一ターン同一総計は破棄
-  const key = JSON.stringify({ t: data.turn, p1: data.p1_total, p2: data.p2_total });
-  if (conn && conn._lastPointsKey === key) return;
-  if (conn) conn._lastPointsKey = key;
+    // デデュープ: 同一ターン同一総計は破棄
+    const key = JSON.stringify({ t: data.turn, p1: data.p1_total, p2: data.p2_total });
+    if (conn && conn._lastPointsKey === key) return;
+    if (conn) conn._lastPointsKey = key;
 
-  // 総計を上書き（ゲスト側）
-  p1_point = Number(data.p1_total) || 0;
-  p2_point = Number(data.p2_total) || 0;
-  document.getElementById("p1_point").textContent = `ポイント：${p1_point}`;
-  document.getElementById("p2_point").textContent = `ポイント：${p2_point}`;
-  if (data.p1_explain) document.getElementById("p1_explain").textContent = data.p1_explain;
-  if (data.p2_explain) document.getElementById("p2_explain").textContent = data.p2_explain;
+    // 総計を上書き（ゲスト側）
+    // 総計を上書き
+    p1_point = Number(data.p1_total) || 0;
+    p2_point = Number(data.p2_total) || 0;
 
-  // 「次のゲーム」表示を同期
-  maybeShowNextButton();
+    // 置換: 視点マッピングしてUI更新
+    setPointsUI(p1_point, p2_point);
+
+    // 説明も上書き
+    if (data.p1_explain) document.getElementById("p1_explain").textContent = data.p1_explain;
+    if (data.p2_explain) document.getElementById("p2_explain").textContent = data.p2_explain;
+
+    // 「次のゲーム」表示を同期
+    maybeShowNextButton();
 }
 
 
