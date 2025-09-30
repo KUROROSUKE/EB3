@@ -491,7 +491,8 @@ function resetGame(CreateHandAndDeck=true) {
     if (CreateHandAndDeck) {
         deck = [...elements, ...elements];
         deck = shuffle(deck);
-        console.log(deck);
+        const tmp_deck = deck
+        console.log(tmp_deck);
 
         random_hand();
     }
