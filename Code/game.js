@@ -444,7 +444,7 @@ document.getElementById("startButton").addEventListener("click", function() {
     resetGame();
 });
 // reset game state
-function resetGame() {
+function resetGame(CreateHandAndDeck=true) {
     document.getElementById("bottomNav").style.display = "none";
     p1_hand = [];
     p2_hand = [];
@@ -477,9 +477,6 @@ function resetGame() {
 
     document.getElementById("done_button").style.display = "none";
     document.getElementById("nextButton").style.display = "none";
-    deck = [...elements, ...elements];
-    deck = shuffle(deck);
-    console.log(deck);
 
     const p1_hand_element = document.getElementById("p1_hand");
     const p2_hand_element = document.getElementById("p2_hand");
@@ -491,7 +488,13 @@ function resetGame() {
     dropped_area_p1_element.innerHTML = "";
     dropped_area_p2_element.innerHTML = "";
 
-    random_hand();
+    if (CreateHandAndDeck) {
+        deck = [...elements, ...elements];
+        deck = shuffle(deck);
+        console.log(deck);
+
+        random_hand();
+    }
     view_p1_hand();
     view_p2_hand();
     document.getElementById("hint_button").style.display = "inline";
@@ -515,7 +518,7 @@ function returnToStartScreen() {
     document.getElementById("nextButton").textContent = "次のゲーム";
     document.getElementById("inGameQuest").style.display = "none";
 }
-function startGame() {
+function startGame(CreateHandAndDeck=true) {
     document.getElementById("startScreen").style.display = "none";
     document.getElementById("p1_area").style.display = "block";
     document.getElementById("dropped_area_p1").style.display = "block";
@@ -523,7 +526,7 @@ function startGame() {
     document.getElementById("p2_area").style.display = "block";
     document.getElementById("gameRuleButton").style.display = "none";
     document.getElementById("nextButton").textContent = "次のゲーム";
-    resetGame();
+    resetGame(CreateHandAndDeck);
 }
 
 
@@ -1927,7 +1930,7 @@ function setupConnection() {
 
         /* variables 同期 */
         if (data.type === "variables") {
-            startGame();
+            startGame(CreateHandAndDeck=true);
             (async () => {materials = await loadMaterials(data.compounds_url);})();
             p2_hand   = data.p1_hand;
             deck      = data.deck;
