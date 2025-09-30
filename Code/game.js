@@ -764,7 +764,7 @@ async function view_p2_hand() {
     })
 }
 // make p2's material when done()
-async function p2_make() {
+async function p2_make(who="p2") {
     time = "make";
 
     // ボタン表示だけ切り替え
@@ -788,7 +788,7 @@ async function p2_make() {
             button.style.display = "none";
             // カード → 化合物
             p2_make_material = await search(arrayToObj(p2_selected_card));
-            if (GameType === "P2P") finishSelect();  // 必要ならコール
+            if (GameType === "P2P") finishSelect(who);  // 必要ならコール
             resolve(p2_make_material);               // ここで Promise 完了
         };
 
@@ -1189,33 +1189,17 @@ function shuffle(array) {
 }
 // if no drawable card, then done() in drawCard()
 async function no_draw_card() {
-    await p2_make();
-    
-    // 待機用のPromise
-    await new Promise(resolve => {
-        const checkInterval = setInterval(() => {
-            if (!p1_finish_select && !p2_finish_select) {
-                clearInterval(checkInterval);
-                resolve();
-            }
-        }, 100);
-    });
-
-    //console.log("next process");
-    if (MineTurn === "p2") {
-        console.log(p2_make_material);
-        finish_done_select(p1_make_material, p2_make_material, "no-draw", isRon=false);
-    }
+    shareAction(action="generate",otherData="no-draw-card");
+    await p2_make(who="no-draw");
 }
 // get next card (if no card in deck, then done()) from this function.
 function drawCard() {
     if (deck.length > 0) {
         return deck.pop()
     } else {
-        if (time = "make", GameType=="CPU"){
+        if (GameType=="CPU"){
             done("no-draw")
         } else {
-            shareAction("generate");
             no_draw_card();
         }
     }
@@ -1983,7 +1967,7 @@ function setupConnection() {
                 checkRon(data.otherData);
 
             } else if (data.action === "generate") {
-                p2_make();
+                p2_make(data.otherData);
             }
             return;
         }
@@ -1994,7 +1978,8 @@ function setupConnection() {
             p1_make_material = data.otherData;
             if (!p2_finish_select) { //自分も選択済みなら
                 console.log(p2_make_material);
-                finish_done_select(p1_make_material, p2_make_material, "p2");
+                const who_does = data.who == "no-draw" ? "no-draw": "p2"
+                finish_done_select(p1_make_material, p2_make_material, who_does);
             }
             return;
         }
@@ -2067,12 +2052,12 @@ function changeTurn(newTurn) {
         }
     }
 }
-async function finishSelect() {
+async function finishSelect(who) {
     //console.log(`${MineTurn}は選択が完了`);
     if (conn && conn.open) {
         p2_finish_select = false;
         console.log("complete send selected to other player")
-        conn.send({ type: "selected", value: MineTurn, otherData: p2_make_material});
+        conn.send({ type: "selected", value: MineTurn, who: who, otherData: p2_make_material});
     }
 }
 async function sharePoints() {
