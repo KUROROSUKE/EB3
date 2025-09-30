@@ -1903,11 +1903,11 @@ function setupConnection() {
         /*   caller 側だけ role を送る  */
         if (MineTurn === "p1") {
             conn.send({ type: "role", value: "p2" });
+            startGame();          // ここで盤面生成
+            shareVariable();      // 山札や手札を同期
         }
 
         document.getElementById("PeerModal").style.display = "none";
-        startGame();          // ここで盤面生成
-        shareVariable();      // 山札や手札を同期
     });
 
     /*--- 受信データ ---*/
@@ -1924,24 +1924,17 @@ function setupConnection() {
 
         /* variables 同期 */
         if (data.type === "variables") {
+            startGame();
+            (async () => {materials = await loadMaterials(data.compounds_url);})();
             p1_hand   = data.p1_hand;
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
-
-            // ⬇⬇⬇ ここを修正: materials を読み込み終えてから盤面を作る ---------
-            (async () => {
-                materials = await loadMaterials(data.compounds_url);
-                startGame();                            // ★ ゲストはここで盤面生成
-            })();
-            // -----------------------------------------------------------------
-
             return;
         }
 
         /* shareVariables（初期手札送り返し）*/
-        if (data.type === "shareVariables") {
-            p1_hand = p2_hand;
+        if (data.type === "check") {
             GameType = "P2P";
             document.getElementById("PeerModal").style.display = "none";
             startGame();
@@ -2030,17 +2023,12 @@ function setupConnection() {
 }
 function shareVariable() {
     if (conn && conn.open) {
-        if (MineTurn === "p1") {
-            //console.log("📤 ホスト (p1) として変数送信！");
-            console.log(deck);
-            GameType = "P2P";
-            conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
-        } else {
-            //console.log("📤 ゲスト (p2) として変数送信！");
-            conn.send({type: "shareVariables", p1_hand: p2_hand });
-        }
+        // MineTurn == p1のとき呼び出しされる
+        //console.log("📤 ホスト (p1) として変数送信！");
+        console.log(deck);
+        conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
     } else {
-        //console.log("⚠️ 接続が開かれていません！");
+        console.log("⚠️ 接続が開かれていません！");
     }
 }
 function shareAction(action, otherData) {
