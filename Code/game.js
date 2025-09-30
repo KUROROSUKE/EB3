@@ -2032,7 +2032,7 @@ function shareVariable() {
     if (conn && conn.open) {
         if (MineTurn === "p1") {
             //console.log("📤 ホスト (p1) として変数送信！");
-            console.log(turn);
+            console.log(deck);
             GameType = "P2P";
             conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
         } else {
