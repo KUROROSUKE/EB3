@@ -1905,6 +1905,8 @@ function setupConnection() {
         if (MineTurn === "p1") {
             conn.send({ type: "role", value: "p2" });
             startGame();          // ここで盤面生成
+            console.log("deck is used this");
+            console.log(deck);
             shareVariable();      // 山札や手札を同期
         }
 
