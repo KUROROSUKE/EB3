@@ -763,16 +763,6 @@ async function view_p2_hand() {
         area.appendChild(image);
     })
 }
-async function tmp() {
-    const newButton = document.getElementById("done_button");
-    newButton.addEventListener("click", async function () {
-        newButton.style.display = "none";
-        p2_make_material = await search(arrayToObj(p2_selected_card));
-        console.log("this is p2_make()");
-        if (GameType=="P2P") {console.log("this is p2_make() -2");finishSelect();}
-        return p2_make_material;
-    });
-}
 // make p2's material when done()
 async function p2_make() {
     time = "make";
@@ -796,12 +786,9 @@ async function p2_make() {
         /* 3. 新しいハンドラを定義 & 1 回だけ登録 */
         button._handler = async () => {
             button.style.display = "none";
-
             // カード → 化合物
             p2_make_material = await search(arrayToObj(p2_selected_card));
-
             if (GameType === "P2P") finishSelect();  // 必要ならコール
-
             resolve(p2_make_material);               // ここで Promise 完了
         };
 
@@ -1759,7 +1746,7 @@ function handleOutsideClick_PeerModal(event) {
 
 
 // --------- P2P communication ---------
-let is_ok_p1 = false; let is_ok_p2 = false //true: OK  false: notOK
+let is_ok_p1 = false; let is_ok_p2 = false //true: OK
 let p1_finish_select = true; let p2_finish_select = true //true: 未選択  false: 選択済み
 let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
@@ -2005,9 +1992,9 @@ function setupConnection() {
         if (data.type === "selected") {
             p1_finish_select = false;
             p1_make_material = data.otherData;
-            if (!p2_finish_select) {
+            if (!p2_finish_select) { //自分も選択済みなら
                 console.log(p2_make_material);
-                finish_done_select(p1_make_material, p2_make_material, "p1");
+                finish_done_select(p1_make_material, p2_make_material, "p2");
             }
             return;
         }
