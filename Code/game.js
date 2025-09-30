@@ -479,6 +479,7 @@ function resetGame() {
     document.getElementById("nextButton").style.display = "none";
     deck = [...elements, ...elements];
     deck = shuffle(deck);
+    console.log(deck);
 
     const p1_hand_element = document.getElementById("p1_hand");
     const p2_hand_element = document.getElementById("p2_hand");
@@ -1930,14 +1931,6 @@ function setupConnection() {
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
-            return;
-        }
-
-        /* shareVariables（初期手札送り返し）*/
-        if (data.type === "check") {
-            GameType = "P2P";
-            document.getElementById("PeerModal").style.display = "none";
-            startGame();
             return;
         }
 
