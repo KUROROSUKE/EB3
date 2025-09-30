@@ -1926,7 +1926,7 @@ function setupConnection() {
         if (data.type === "variables") {
             startGame();
             (async () => {materials = await loadMaterials(data.compounds_url);})();
-            p1_hand   = data.p1_hand;
+            p2_hand   = data.p1_hand;
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
