@@ -1833,9 +1833,19 @@ async function winnerAndChangeButton() {
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
         });
-    } else {
+    } else { //winnerが決まった
         console.log("ラウンド終了");
         button.textContent = "ラウンド終了";
+        const ExplainArea = document.getElementById("p1_explain");
+        if (winner!=MineTurn) {
+            ExplainArea.innerHTML = "YOU LOSE";
+            ExplainArea.style.color = "blue";
+            ExplainArea.style.fontSize = "5vh";
+        } else {
+            ExplainArea.innerHTML = "YOU WIN!";
+            ExplainArea.style.color = "red";
+            ExplainArea.style.fontSize = "5vh";
+        };
         button.addEventListener("click", function () {
             p1_point = 0;
             p2_point = 0;
