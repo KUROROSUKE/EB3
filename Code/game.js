@@ -2126,30 +2126,33 @@ let myRankQueueRef = null;       // 自分の rankQueue エントリ参照
 let isSearchingRank = false;     // いまマッチング待機中か
 let rankQueueListener = null;    // on("value") のハンドラ参照（off で外すため）
 async function cancelRankMatch() {
-    try {
-        const queueRef = database.ref("rankQueue");
+    // 先にフラグを落として、以降の listener 実行を無効化
+    isSearchingRank = false;
 
-        // 監視解除（ハンドラ指定で安全に外す）
-        if (rankQueueListener) {
-            queueRef.off("value", rankQueueListener);
-            rankQueueListener = null;
-        }
+    const queueRef = database.ref("rankQueue");
 
-        // 自分のエントリ削除
-        if (myRankQueueRef) {
+    // 監視解除（同じハンドラで外す）
+    if (rankQueueListener) {
+        queueRef.off("value", rankQueueListener);
+        rankQueueListener = null;
+    }
+
+    // 自分のエントリ削除
+    if (myRankQueueRef) {
+        try {
             await myRankQueueRef.remove();
+        } catch (e) {
+            console.warn("cancelRankMatch: remove failed", e);
+        } finally {
             myRankQueueRef = null;
         }
-
-    } finally {
-        // UI を戻す
-        const btn = document.getElementById("RankMatchButton");
-        btn.innerHTML = "対戦";
-        btn.disabled = false;
-        btn.setAttribute("aria-disabled", "true");
-
-        isSearchingRank = false;
     }
+
+    // UI を戻す（待機中でも押せる仕様にする）
+    const btn = document.getElementById("RankMatchButton");
+    btn.innerHTML = "対戦";
+    btn.disabled = false;
+    btn.setAttribute("aria-disabled", "false");
 }
 async function RankMatch() {
     const user = firebase.auth().currentUser;
@@ -2158,7 +2161,7 @@ async function RankMatch() {
         return;
     }
 
-    // ✅ 2回目押下＝キャンセル（rankQueue から削除）
+    // 2回目押下＝キャンセル
     if (isSearchingRank) {
         await cancelRankMatch();
         return;
@@ -2166,41 +2169,47 @@ async function RankMatch() {
 
     const queueRef = database.ref("rankQueue");
 
-    // ① 自分をキューに登録（ref を保持して後で remove できるようにする）
+    // 待機開始
+    isSearchingRank = true;
+
+    // UI：待機中でも押せる（＝キャンセルできる）
+    const RankMatchButton = document.getElementById("RankMatchButton");
+    RankMatchButton.innerHTML = "キャンセル";
+    RankMatchButton.disabled = false;
+    RankMatchButton.setAttribute("aria-disabled", "false");
+
+    // 自分をキューに登録（ref を保持）
     myRankQueueRef = await queueRef.push({
         uid    : user.uid,
         peerID : peer.id,
         ts     : firebase.database.ServerValue.TIMESTAMP
     });
 
-    isSearchingRank = true;
+    // （任意だが強く推奨）切断時に自動で消す
+    try {
+        myRankQueueRef.onDisconnect().remove();
+    } catch (e) {
+        console.warn("onDisconnect().remove() failed", e);
+    }
 
-    // UI：マッチング中にする
-    const RankMatchButton = document.getElementById("RankMatchButton");
-    RankMatchButton.innerHTML = "マッチング中.";
-    RankMatchButton.disabled = true;
-    RankMatchButton.setAttribute("aria-disabled", "false");
-
-    // ② キュー監視（off で確実に外すため、ハンドラ参照を保存）
+    // 監視ハンドラ（キャンセル後に走っても何もしないガードを入れる）
     rankQueueListener = async (snap) => {
+        if (!isSearchingRank) return; // ★キャンセル済みガード
+        if (!myRankQueueRef) return;  // ★自分エントリが無いなら無効
+
         const list = snap.val();
         if (!list) return;
 
-        // エントリをタイムスタンプ昇順で並べ替え
-        const entries = Object.entries(list)
-                              .sort(([, a], [, b]) => a.ts - b.ts);
-
-        // まだ2人そろっていなければ待機続行
+        const entries = Object.entries(list).sort(([, a], [, b]) => a.ts - b.ts);
         if (entries.length < 2) return;
 
-        const [firstKey,  first ] = entries[0];  // 先に押した人
-        const [secondKey, second] = entries[1];  // 後から押した人
+        const [firstKey,  first ] = entries[0];
+        const [secondKey, second] = entries[1];
 
         let opponent;
         let iAmCaller = false;
 
         if (second.uid === user.uid) {
-            // 自分が後から押した人 → caller (= p1)
             opponent    = first;
             iAmCaller   = true;
             opponentUid = first.uid;
@@ -2210,12 +2219,11 @@ async function RankMatch() {
             document.getElementById("opponentName").innerHTML = `${Name}`;
             document.getElementById("opponentRate").innerHTML = `${Rate}`;
 
-            // キュー掃除（両エントリ削除）
-            await queueRef.child(firstKey ).remove();
+            // 両エントリ削除（caller 側）
+            await queueRef.child(firstKey).remove();
             await queueRef.child(secondKey).remove();
 
         } else if (first.uid === user.uid) {
-            // 自分が先に押した人 → callee (= p2)
             opponent    = second;
             iAmCaller   = false;
             opponentUid = second.uid;
@@ -2224,30 +2232,24 @@ async function RankMatch() {
             const { Name, Rate } = snapshot.val();
             document.getElementById("opponentName").innerHTML = `${Name}`;
             document.getElementById("opponentRate").innerHTML = `${Rate}`;
-
-            // 待機側はキュー削除を caller にまかせる
         } else {
-            // 自分は3人目以降。何もしない
-            return;
+            return; // 3人目以降は無視
         }
 
-        // ③ 監視解除（マッチング完了）
+        // マッチ成立：監視解除＆状態更新
         queueRef.off("value", rankQueueListener);
         rankQueueListener = null;
 
-        // 自分のエントリ参照を無効化（caller 側は既に消してるが、念のため）
         myRankQueueRef = null;
         isSearchingRank = false;
-
         IsRankMatch = true;
 
-        // Peer 接続
         handShake(opponent, iAmCaller);
 
         // UI：対戦に戻す
         RankMatchButton.innerHTML = "対戦";
         RankMatchButton.disabled = false;
-        RankMatchButton.setAttribute("aria-disabled", "true");
+        RankMatchButton.setAttribute("aria-disabled", "false");
     };
 
     queueRef.on("value", rankQueueListener);
@@ -3116,4 +3118,5 @@ function launchConfetti() {
     });
   }
 }
+
 
