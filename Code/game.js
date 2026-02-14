@@ -1931,12 +1931,12 @@ function setupConnection() {
 
         /* variables 同期 */
         if (data.type === "variables") {
-            startGame(CreateHandAndDeck=true);
             (async () => {materials = await loadMaterials(data.compounds_url);})();
             p2_hand   = data.p1_hand;
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
+            startGame(CreateHandAndDeck=true);
             return;
         }
 
@@ -2272,14 +2272,14 @@ function handShake(opponent, iAmCaller) {
 
         opponentUid = opponent.peerID;
         console.log(opponentUid);
+
+        // ★ open 前に setupConnection を仕込む
         conn = peer.connect(opponentUid, { reliable: true });
+        setupConnection();  // ←ここを先に呼ぶ（これが重要）
 
+        // UI の開放だけ open 後にやる（role/startGame/shareVariable は setupConnection がやる）
         conn.on('open', () => {
-            // 相手を p2 に指定
-            conn.send({ type: "role", value: "p2" });
-
-            setupConnection();      // ★ caller も必ず渡す
-            changeTurn(turn);           // 先手番 UI 開放
+            changeTurn(turn);
         });
 
     } else {
@@ -3127,6 +3127,7 @@ function launchConfetti() {
     });
   }
 }
+
 
 
 
