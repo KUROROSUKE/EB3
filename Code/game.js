@@ -1805,71 +1805,83 @@ function waitUntilBothTrue(getVar1, getVar2, interval = 100) {
     });
 }
 async function winnerAndChangeButton() {
-    // 2. 勝者判定
-    const winner = await win_check();
-    
+    const winnerRaw = await win_check();
+
     document.getElementById("done_button").style.display = "none";
     const button = document.getElementById("nextButton");
     button.style.display = "inline";
-  
-    // 3. winner が false → 「次のゲーム」ボタン
-    if (!winner) {
+
+    // 次のゲーム
+    if (!winnerRaw) {
         console.log("次のゲーム");
         button.textContent = "次のゲーム";
-        
-        // クリック時の処理を async 化する
+
         button.addEventListener("click", async function () {
-            // 4. is_ok_p1 と is_ok_p2 がともに true になるまで待つ
-            //localStorage.setItem('tutorialSeen', 'true');
             is_ok_p2 = true;
-            nextIsOK()
+            nextIsOK();
             button.style.display = "none";
-            console.log("OK")
-            await waitUntilBothTrue(
-                () => is_ok_p1,
-                () => is_ok_p2
-            );
-            is_ok_p1 = false
-            is_ok_p2 = false
-            // 5. 両方 OK なら、次のゲーム処理を実行
+
+            await waitUntilBothTrue(() => is_ok_p1, () => is_ok_p2);
+
+            is_ok_p1 = false;
+            is_ok_p2 = false;
+
             numTurn += 1;
             resetGame();
-            // addEventListener の重複を避けるため、一度ボタンを置き換える
-            const newButton = button.cloneNode(true);
-            button.parentNode.replaceChild(newButton, button);
-        });
-    } else { //winnerが決まった
-        console.log("ラウンド終了");
-        button.textContent = "ラウンド終了";
-        const ExplainArea = document.getElementById("p1_explain");
-        if (winner!=MineTurn) {
-            ExplainArea.innerHTML = "YOU LOSE";
-            ExplainArea.style.color = "blue";
-            ExplainArea.style.fontSize = "5vh";
-        } else {
-            ExplainArea.innerHTML = "YOU WIN!";
-            ExplainArea.style.color = "red";
-            ExplainArea.style.fontSize = "5vh";
-        };
-        button.addEventListener("click", function () {
-            p1_point = 0;
-            p2_point = 0;
-            numTurn = 1;
-            const user = firebase.auth().currentUser;
-            if (IsRankMatch && MineTurn=="p2") {updateRating(user.uid, opponentUid);}
-            IsRankMatch = false;
-
-            conn.close();
-
-            resetGame();
-            returnToStartScreen();
-            button.style.display = "none";
-            
 
             const newButton = button.cloneNode(true);
             button.parentNode.replaceChild(newButton, button);
         });
+
+        return;
     }
+
+    // ラウンド終了
+    console.log("ラウンド終了");
+    button.textContent = "ラウンド終了";
+
+    const winner = String(winnerRaw).trim(); // "p1" or "p2" を想定
+    const ExplainArea = document.getElementById("p1_explain");
+
+    if (winner !== MineTurn) {
+        ExplainArea.innerHTML = "YOU LOSE";
+        ExplainArea.style.color = "blue";
+        ExplainArea.style.fontSize = "5vh";
+    } else {
+        ExplainArea.innerHTML = "YOU WIN!";
+        ExplainArea.style.color = "red";
+        ExplainArea.style.fontSize = "5vh";
+    }
+
+    button.addEventListener("click", async function () {
+        p1_point = 0;
+        p2_point = 0;
+        numTurn = 1;
+
+        const user = firebase.auth().currentUser;
+
+        // ★ レート更新：勝者/敗者を winner と MineTurn から確定
+        // ★ 二重更新防止：p1 側だけが DB 更新（片側だけに寄せる）
+        if (IsRankMatch && user && MineTurn === "p1") {
+            const myUid  = user.uid;
+            const oppUid = opponentUid; // ← ここは Firebase uid であること（handShakeで上書きしない）
+
+            const winnerUid = (winner === MineTurn) ? myUid : oppUid;
+            const loserUid  = (winner === MineTurn) ? oppUid : myUid;
+
+            await updateRating(winnerUid, loserUid);
+        }
+
+        IsRankMatch = false;
+
+        conn.close();
+        resetGame();
+        returnToStartScreen();
+        button.style.display = "none";
+
+        const newButton = button.cloneNode(true);
+        button.parentNode.replaceChild(newButton, button);
+    });
 }
 async function generatePeerID() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -2270,15 +2282,17 @@ function handShake(opponent, iAmCaller) {
         MineTurn = "p1";
         turn     = "p1";
 
-        opponentUid = opponent.peerID;
-        console.log(opponentUid);
+        // ★ opponentUid は「相手の Firebase uid」として RankMatch 側で保持している前提
+        // ★ ここで peerID を opponentUid に上書きしない
+        const remotePeerId = opponent.peerID;
 
-        // ★ open 前に setupConnection を仕込む
-        conn = peer.connect(opponentUid, { reliable: true });
-        setupConnection();  // ←ここを先に呼ぶ（これが重要）
+        conn = peer.connect(remotePeerId, { reliable: true });
 
-        // UI の開放だけ open 後にやる（role/startGame/shareVariable は setupConnection がやる）
         conn.on('open', () => {
+            // 相手を p2 に指定（setupConnection 側でも送ってるなら、ここは削ってもOK）
+            conn.send({ type: "role", value: "p2" });
+
+            setupConnection();
             changeTurn(turn);
         });
 
@@ -3127,6 +3141,7 @@ function launchConfetti() {
     });
   }
 }
+
 
 
 
