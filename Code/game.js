@@ -1913,21 +1913,45 @@ function connectToPeer() {
 //データを受け取った時の処理
 /* connection を必ず受け取る形に変更 */
 function setupConnection() {
+    if (!conn) return;
+
+    // 同じ DataConnection に多重に on() を張らない（連打・再入で事故るのを防ぐ）
+    if (conn.__eb3HandlersInstalled) return;
+    conn.__eb3HandlersInstalled = true;
+
     /*--- DataConnection が open したら共通初期化 ---*/
-    conn.on('open', () => {
+    const onOpenInit = () => {
+        // open イベント取り逃し対策：open 済みでもこの関数を呼ぶ
+        if (conn.__eb3OpenInited) return;
+        if (!conn.open) return;
+        conn.__eb3OpenInited = true;
+
         GameType = "P2P";
 
-        /*   caller 側だけ role を送る  */
+        /* caller 側だけ初期化を主導する */
         if (MineTurn === "p1") {
+            // 相手を p2 として扱う（相手側は role 受信で MineTurn を確定）
             conn.send({ type: "role", value: "p2" });
-            startGame();          // ここで盤面生成
-            console.log("deck is used this");
-            console.log(deck);
-            shareVariable();      // 山札や手札を同期
+
+            // ここで盤面生成（山札/手札を決める）
+            startGame();
+
+            // 山札や手札を同期
+            shareVariable();
+
+            // 先手を p1 に固定（handShake でやっていた処理をここに移す）
+            changeTurn("p1");
         }
 
         document.getElementById("PeerModal").style.display = "none";
-    });
+    };
+
+    conn.on('open', onOpenInit);
+
+    // すでに open 済みなら open ハンドラを取り逃している可能性があるので救済
+    if (conn.open) {
+        setTimeout(onOpenInit, 0);
+    }
 
     /*--- 受信データ ---*/
     conn.on('data', data => {
@@ -1936,26 +1960,40 @@ function setupConnection() {
         /* role を受け取った側 (= p2) はここで MineTurn 確定 */
         if (data.type === "role") {
             MineTurn = data.value;   // "p2"
-            turn     = "p1";       // ゲームは常に p1 から開始
-            //changeTurn(turn);        // UI を開放
-            return;                  // これだけは即 return
+            turn     = "p1";         // 開始は p1（ホスト側が changeTurn で通知）
+            return;
         }
 
         /* variables 同期 */
         if (data.type === "variables") {
-            (async () => {materials = await loadMaterials(data.compounds_url);})();
+            // compounds を揃える（非同期でOK）
+            if (data.compounds_url) {
+                compoundsURL = data.compounds_url;
+                (async () => { materials = await loadMaterials(compoundsURL); })();
+            }
+
+            // まず盤面生成（UI 初期化）
             startGame(CreateHandAndDeck=true);
+
+            // 受信した状態で上書き
             p2_hand   = data.p1_hand;
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
+
+            // 手札表示を作り直す（startGame() 内の random_hand 表示を上書き）
+            document.getElementById("p1_hand").innerHTML = "";
+            document.getElementById("p2_hand").innerHTML = "";
+            view_p1_hand();
+            view_p2_hand();
+
             return;
         }
 
         /* ターン切替 */
         if (data.type === "turn") {
             turn = data.value;
-            if (turn===MineTurn) {
+            if (turn === MineTurn) {
                 document.getElementById("generate_button").style.display = "inline";
             } else {
                 document.getElementById("generate_button").style.display = "none";
@@ -2035,9 +2073,17 @@ function setupConnection() {
 function shareVariable() {
     if (conn && conn.open) {
         // MineTurn == p1のとき呼び出しされる
-        //console.log("📤 ホスト (p1) として変数送信！");
+        // receiver 側は data.p1_hand を自分の手札(p2_hand)として受け取るので、ここでは p1_hand（= 相手の手札）を送る
         console.log(deck);
-        conn.send({type: "variables",  p1_hand: p2_hand, deck: deck, PartnerTurn: MineTurn, win_point: WIN_POINT, win_turn: WIN_TURN, compounds_url: compoundsURL});
+        conn.send({
+            type: "variables",
+            p1_hand: p1_hand,
+            deck: deck,
+            PartnerTurn: MineTurn,
+            win_point: WIN_POINT,
+            win_turn: WIN_TURN,
+            compounds_url: compoundsURL
+        });
     } else {
         console.log("⚠️ 接続が開かれていません！");
     }
@@ -2288,18 +2334,14 @@ function handShake(opponent, iAmCaller) {
 
         conn = peer.connect(remotePeerId, { reliable: true });
 
-        conn.on('open', () => {
-            // 相手を p2 に指定（setupConnection 側でも送ってるなら、ここは削ってもOK）
-            conn.send({ type: "role", value: "p2" });
-
-            setupConnection();
-            changeTurn(turn);
-        });
+        // ★ open より後に setupConnection() すると open を取り逃して初期化されない
+        //    （= ゲームが開始しない）ので、必ず先にハンドラを張る
+        setupConnection();
 
     } else {
         /*************  callee (= p2)  *************/
         MineTurn = "p2";
-        // 待受け側は peer.on('connection') で setupConnection 済み
+        // 待受け側は peer.on('connection') で conn を受け取り setupConnection 済み
     }
 }
 async function updateRating(winnerUid, loserUid) {
@@ -3141,6 +3183,7 @@ function launchConfetti() {
     });
   }
 }
+
 
 
 
