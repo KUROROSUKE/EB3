@@ -1740,6 +1740,12 @@ let p1_finish_select = true; let p2_finish_select = true //true: 未選択  fals
 let p1_make_material = {}; let p2_make_material; //p1が生成した物質が送られてきたときにMaterial形式で代入される
 let peer; let conn;
 async function finish_done_select(p1_make_material, p2_make_material_arg, who, isRon = false) {
+    // P2P 対戦では「片側だけ」が得点計算を主導する（両側で計算すると乱数やタイミングでズレて破綻する）
+    // RankMatch の caller (= MineTurn === "p1") を得点・結果の権威にする
+    if (GameType === "P2P" && MineTurn !== "p1") {
+        return;
+    }
+
     if (!p1_make_material || !p2_make_material_arg) {
         console.error("⚠️ material data is missing — finish_done_select aborted.");
         return;
@@ -1843,7 +1849,11 @@ async function winnerAndChangeButton() {
     const winner = String(winnerRaw).trim(); // "p1" or "p2" を想定
     const ExplainArea = document.getElementById("p1_explain");
 
-    if (winner !== MineTurn) {
+    // このコードベースでは UI / ローカルの手札・得点は常に "p2" 側として扱っている
+    // （CPU戦の実装と同じ：プレイヤー = p2、相手 = p1）
+    const LOCAL_SIDE = "p2";
+
+    if (winner !== LOCAL_SIDE) {
         ExplainArea.innerHTML = "YOU LOSE";
         ExplainArea.style.color = "blue";
         ExplainArea.style.fontSize = "5vh";
@@ -1860,14 +1870,14 @@ async function winnerAndChangeButton() {
 
         const user = firebase.auth().currentUser;
 
-        // ★ レート更新：勝者/敗者を winner と MineTurn から確定
-        // ★ 二重更新防止：p1 側だけが DB 更新（片側だけに寄せる）
+        // ★ レート更新：勝者/敗者を "ローカル(p2)" 基準で確定
+        // ★ 二重更新防止：RankMatch の caller（= MineTurn === "p1"）だけが DB 更新
         if (IsRankMatch && user && MineTurn === "p1") {
             const myUid  = user.uid;
-            const oppUid = opponentUid; // ← ここは Firebase uid であること（handShakeで上書きしない）
+            const oppUid = opponentUid; // Firebase uid
 
-            const winnerUid = (winner === MineTurn) ? myUid : oppUid;
-            const loserUid  = (winner === MineTurn) ? oppUid : myUid;
+            const winnerUid = (winner === LOCAL_SIDE) ? myUid : oppUid;
+            const loserUid  = (winner === LOCAL_SIDE) ? oppUid : myUid;
 
             await updateRating(winnerUid, loserUid);
         }
@@ -2038,8 +2048,26 @@ function setupConnection() {
 
         /* スコア同期 */
         if (data.type === "pointsData") {
-            document.getElementById("p1_point").innerHTML += `+${data.p1_point - p1_point}`;
-            document.getElementById("p2_point").innerHTML += `+${data.p2_point - p2_point}`;
+            // 得点計算の権威 (= MineTurn === "p1") は自分で計算した値を保持し、相手からの上書きを受けない
+            if (MineTurn === "p1") return;
+
+            const p1El = document.getElementById("p1_point");
+            const p2El = document.getElementById("p2_point");
+            const deltaP1 = data.p1_point - p1_point;
+            const deltaP2 = data.p2_point - p2_point;
+
+            // 表示は既存仕様に合わせて "+X" を積む。ただし異常値なら合計にリセット。
+            if (!Number.isFinite(deltaP1) || Math.abs(deltaP1) > 100000) {
+                p1El.innerHTML = `ポイント：${data.p1_point}`;
+            } else {
+                p1El.innerHTML += `+${deltaP1}`;
+            }
+            if (!Number.isFinite(deltaP2) || Math.abs(deltaP2) > 100000) {
+                p2El.innerHTML = `ポイント：${data.p2_point}`;
+            } else {
+                p2El.innerHTML += `+${deltaP2}`;
+            }
+
             document.getElementById("p1_explain").innerHTML = data.p1_explain;
             document.getElementById("p2_explain").innerHTML = data.p2_explain;
             p1_point = data.p1_point;
@@ -2070,6 +2098,7 @@ function setupConnection() {
         }
     });
 }
+
 function shareVariable() {
     if (conn && conn.open) {
         // MineTurn == p1のとき呼び出しされる
@@ -2088,6 +2117,7 @@ function shareVariable() {
         console.log("⚠️ 接続が開かれていません！");
     }
 }
+
 function shareAction(action, otherData) {
     if (conn && conn.open) {
         conn.send({ type: "action", action: action, otherData: otherData, deck: deck });
@@ -2116,12 +2146,21 @@ async function finishSelect(who) {
     }
 }
 async function sharePoints() {
+    // 得点同期も 1 箇所（caller / MineTurn === "p1"）からだけ送る
+    if (GameType === "P2P" && MineTurn !== "p1") return;
+
     if (conn && conn.open) {
-        p1_explain_copy = document.getElementById("p2_explain").textContent
-        p2_explain_copy = document.getElementById("p1_explain").textContent
-        //console.log(p1_explain_copy)
-        //console.log(p2_explain_copy)
-        conn.send({type: "pointsData", p1_point: p2_point, p1_explain: p1_explain_copy, p2_point: p1_point, p2_explain: p2_explain_copy})
+        const p1_explain_copy = document.getElementById("p2_explain").textContent;
+        const p2_explain_copy = document.getElementById("p1_explain").textContent;
+
+        // 受信側が「自分 = p2 / 相手 = p1」になるように、得点・説明を入れ替えて送る
+        conn.send({
+            type: "pointsData",
+            p1_point: p2_point,
+            p1_explain: p1_explain_copy,
+            p2_point: p1_point,
+            p2_explain: p2_explain_copy
+        });
     }
 }
 async function nextIsOK() {
@@ -2344,6 +2383,7 @@ function handShake(opponent, iAmCaller) {
         // 待受け側は peer.on('connection') で conn を受け取り setupConnection 済み
     }
 }
+
 async function updateRating(winnerUid, loserUid) {
     console.log(loserUid);
     const ratingRef = database.ref("players");
@@ -3183,7 +3223,6 @@ function launchConfetti() {
     });
   }
 }
-
 
 
 
