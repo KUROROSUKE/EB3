@@ -1932,11 +1932,11 @@ function setupConnection() {
         /* variables 同期 */
         if (data.type === "variables") {
             (async () => {materials = await loadMaterials(data.compounds_url);})();
+            startGame(CreateHandAndDeck=true);
             p2_hand   = data.p1_hand;
             deck      = data.deck;
             WIN_POINT = data.win_point;
             WIN_TURN  = data.win_turn;
-            startGame(CreateHandAndDeck=true);
             return;
         }
 
@@ -3127,6 +3127,7 @@ function launchConfetti() {
     });
   }
 }
+
 
 
 
