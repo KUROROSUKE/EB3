@@ -2435,7 +2435,7 @@ async function saveWinSettings() {
     const thresholdInput = parseFloat(document.getElementById("threshold").value);
     const isTraining = document.getElementById("IsTraining").value;
     const compoundsSelection = document.getElementById("compoundsSelection").value;
-    compoundsURL = compoundsSelection === "url" ? document.getElementById("compoundsURL").value : `https://kurorosuke.github.io/compounds/obf_${compoundsSelection}_min.json`;
+    compoundsURL = compoundsSelection === "url" ? document.getElementById("compoundsURL").value : `https://kurorosuke.github.io/compounds/${compoundsSelection}.json`;
 
     if (isNaN(winPointInput)) {
         alert("コールドスコア は 1 以上 999 以下の数値を入力してください。");
@@ -3223,6 +3223,7 @@ function launchConfetti() {
     });
   }
 }
+
 
 
 
