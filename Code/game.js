@@ -552,53 +552,194 @@ async function view_p1_hand() {
 async function p1_action() {
     if (turn !== "p1" || p1_is_acting) {
         return;  // すでに行動中なら何もしない
-    };
+    }
     p1_is_acting = true;  // 行動開始
 
-    // フィルタリング
-    const highPointMaterials = materials.filter(material => material.c > threshold);
-    
-    // 最適な物質を選択
-    const sortedMaterials = highPointMaterials.sort((a, b) => {
-        let aMatchCount = Object.keys(a.d).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, a.d[elem]), 0);
-        let bMatchCount = Object.keys(b.d).reduce((count, elem) => count + Math.min(p1_hand.filter(e => e === elem).length, b.d[elem]), 0);
-        return bMatchCount - aMatchCount || b.c - a.c;
-    });
+    // -----------------------
+    // CPU (p1) 強化版AI
+    // - 可能なら「このラウンドを終わらせる(MAKE)」と「交換(EXCHANGE)」を比較し、
+    //   期待される「自分得点 - 相手得点」が最大になる手を選ぶ。
+    // - 交換は「自分→相手」の2手先まで読み、山札は多重集合として確率計算する。
+    // - チート級に強くするため、相手手札(p2_hand)も残り山推定から除外する（完全情報に近い）。
+    // -----------------------
 
-    const targetMaterial = sortedMaterials[0];
+    // hand配列 -> {H:2, O:1 ...}
+    function _countElems(arr) {
+        const m = {};
+        for (const x of arr) m[x] = (m[x] || 0) + 1;
+        return m;
+    }
 
-    if (!targetMaterial) {
-        p1_exchange(Math.floor(Math.random() * p1_hand.length));
-    } else {
-        let canMake = true;
-        for (const element in targetMaterial.d) {
-            if (!p1_hand.includes(element) || p1_hand.filter(e => e === element).length < targetMaterial.d[element]) {
-                canMake = false;
-                break;
-            };
-        };
-        if (canMake && targetMaterial.c > threshold) {
-            time = "make";
-            await done("p1");
+    function _bestMakeScore(handArr) {
+        const comps = _countElems(handArr);
+        // search_materials は async だが中身は同期的 filter なので、ここでは then を使う
+        // （この関数自体は同期）
+        // NOTE: ここは呼び出し側で await する
+        return search_materials(comps).then(ms => {
+            if (!ms || ms.length === 0) return 0;
+            let best = 0;
+            for (const m of ms) if (m.c > best) best = m.c;
+            return best;
+        });
+    }
+
+    // 残り山を「要素×2」から、見えているカードを除外して推定
+    async function _remainingDeckCounts() {
+        const allCards = [
+            ...p1_hand, ...p2_hand,            // チート：相手手札も既知扱い
+            ...dropped_cards_p1, ...dropped_cards_p2
+        ];
+        let tmpDeck = [...elements, ...elements];
+        tmpDeck = await removeCards(tmpDeck, allCards);
+        const m = {};
+        for (const x of tmpDeck) m[x] = (m[x] || 0) + 1;
+        return m;
+    }
+
+    // 期待値計算（確率は残り山の多重集合）
+    function _sumCounts(cnt) {
+        let s = 0;
+        for (const k in cnt) s += cnt[k];
+        return s;
+    }
+
+    // p2が最善手を選ぶと仮定し、p1の「ネット得点(=p1best - p2best)」の期待値を返す
+    // ここでは p2 手番での「MAKE or EXCHANGE」を比較し、p2有利 (=p1ネットが小さい) になる方を選ぶ
+    async function _p2BestResponseEV(p1HandAfter, p2HandNow, deckCntNow) {
+        const p1Best = await _bestMakeScore(p1HandAfter);
+
+        // p2が今MAKEしてラウンド終了
+        const p2BestNow = await _bestMakeScore(p2HandNow);
+        let bestForP1_ifP2Make = p1Best - p2BestNow;
+
+        // p2がEXCHANGEしてから（次はp1が基本MAKEで締めると仮定）
+        const total = _sumCounts(deckCntNow);
+        let bestForP1_ifP2Exchange = Infinity; // p2は p1ネットを最小化
+        if (total > 0) {
+            // p2の捨て候補を全探索
+            for (let j = 0; j < p2HandNow.length; j++) {
+                const base = [...p2HandNow];
+                base.splice(j, 1);
+
+                let ev = 0;
+                for (const el in deckCntNow) {
+                    const n = deckCntNow[el];
+                    if (n <= 0) continue;
+                    const p = n / total;
+
+                    const p2HandAfter = [...base, el];
+                    const p2BestAfter = await _bestMakeScore(p2HandAfter);
+                    ev += p * (p1Best - p2BestAfter);
+                }
+                if (ev < bestForP1_ifP2Exchange) bestForP1_ifP2Exchange = ev;
+            }
         } else {
-            let unnecessaryCards = p1_hand.filter(e => {
-                return !(e in targetMaterial.d) || p1_hand.filter(card => card === e).length > targetMaterial.d[e];
-            });
+            bestForP1_ifP2Exchange = bestForP1_ifP2Make;
+        }
 
-            if (unnecessaryCards.length > 0) {
-                let cardToExchange = unnecessaryCards[Math.floor(Math.random() * unnecessaryCards.length)];
-                p1_exchange(p1_hand.indexOf(cardToExchange));
-            } else {
-                time = "make"
-                done("p1");
-            };
-        };
-    };
-    
-    turn = "p2";
-    p1_is_acting = false;
+        // p2は p1ネットが小さい方を選ぶ
+        return Math.min(bestForP1_ifP2Make, bestForP1_ifP2Exchange);
+    }
+
+    // p1の交換（捨て index）後、p2が最善応答すると仮定したときの p1ネット得点期待値
+    async function _evAfterP1Exchange(dropIndex, deckCntNow) {
+        const total = _sumCounts(deckCntNow);
+        if (total <= 0) return -Infinity;
+
+        // 捨てた後の手札（1枚減）
+        const base = [...p1_hand];
+        const dropped = base.splice(dropIndex, 1)[0];
+
+        // 捨て牌は公開情報になるので、残り山推定には影響しない（ここでは単純化して deck は変えない）
+        // ※厳密には「捨て牌が山に戻らない」ので deckCnt はそのままでOK
+
+        let ev = 0;
+        for (const el in deckCntNow) {
+            const n = deckCntNow[el];
+            if (n <= 0) continue;
+            const p = n / total;
+
+            // 1枚引いた後のp1手札
+            const p1HandAfter = [...base, el];
+
+            // p2の最善応答（p1ネット）を評価
+            const p2ev = await _p2BestResponseEV(p1HandAfter, p2_hand, deckCntNow);
+            ev += p * p2ev;
+        }
+        return ev;
+    }
+
+    // ---- ここから意思決定 ----
+    const deckCnt = await _remainingDeckCounts();
+
+    // Option 1: p1が今 MAKE してラウンド終了（done が p2_make も実行するため）
+    const rawP1BestNow = await _bestMakeScore(p1_hand);
+    const rawP2BestNow = await _bestMakeScore(p2_hand);
+
+    // 「すぐ精製しすぎ」を抑えるために、CPUにも "しきい値" を適用する。
+    // しきい値未満の手は「今MAKEしても0点相当」と見なして基本は粘る。
+    const p1BestNow = (rawP1BestNow >= threshold) ? rawP1BestNow : 0;
+    const p2BestNow = (rawP2BestNow >= threshold) ? rawP2BestNow : 0;
+    const evMakeNow = p1BestNow - p2BestNow;
+
+    // Option 2: p1が EXCHANGE してから最善（2手読み期待値）
+    let bestDrop = Math.floor(Math.random() * p1_hand.length);
+    let bestEvExchange = -Infinity;
+
+    for (let i = 0; i < p1_hand.length; i++) {
+        const ev = await _evAfterP1Exchange(i, deckCnt);
+        if (ev > bestEvExchange) {
+            bestEvExchange = ev;
+            bestDrop = i;
+        }
+    }
+
+    // -----------------------
+    // 「強いけど、毎回すぐ精製で終わる」を避けるポリシー
+    // - 序盤/中盤：より高打点を狙う（交換を優先しやすい）
+    // - 終盤：確定点を取りに行く（ただし、しきい値未満は極力作らない）
+    // - 点差が大きい：負けてる側は早取り、勝ってる側は慎重
+    // -----------------------
+    const turnsLeft = Math.max(0, WIN_TURN - numTurn);
+    const lead = p1_point - p2_point;
+
+    // MAKE と EXCHANGE の比較に「作るハードル」を追加（大きいほど粘る）
+    // 目安：0.0〜10.0
+    let makeMargin = 3.0;              // 基本は交換寄り
+    if (turnsLeft <= 1) makeMargin = 0.5;
+    else if (turnsLeft <= 2) makeMargin = 1.5;
+
+    // 負けてるときは少し早取り、勝ってるときは少し粘る
+    if (lead < -30) makeMargin -= 1.0;
+    if (lead >  30) makeMargin += 1.0;
+
+    // さらに「同点/僅差」は展開を作るために少し粘る
+    if (Math.abs(lead) <= 10 && turnsLeft >= 2) makeMargin += 0.5;
+
+    // しきい値以上でも、たまに“欲張り”に交換する（読み合い感を出す）
+    // ただし終盤は控えめ
+    const greedProb = (turnsLeft <= 1) ? 0.05 : (turnsLeft <= 2 ? 0.10 : 0.20);
+
+    const shouldMake =
+        // 終盤は確定点を優先（しきい値以上が前提）
+        (p1BestNow > 0 && turnsLeft <= 1) ||
+        // それ以外は、MAKE が交換期待値を十分上回るときだけ作る
+        (p1BestNow > 0 && (evMakeNow >= bestEvExchange + makeMargin));
+
+    if (shouldMake && Math.random() > greedProb) {
+        time = "make";
+        await done("p1");
+        turn = "p2";
+        p1_is_acting = false;
+        return;
+    } else {
+        await p1_exchange(bestDrop);
+        turn = "p2";
+        p1_is_acting = false;
+        return;
+    }
 }
-// p1 exchange card by automation
+// card by automation
 async function p1_exchange(targetElem) {
     console.log("this")
     // Select a random card index from p1_hand// TODO: from AI.js
@@ -3223,10 +3364,3 @@ function launchConfetti() {
     });
   }
 }
-
-
-
-
-
-
-
